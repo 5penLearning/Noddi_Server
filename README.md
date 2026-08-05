@@ -1,5 +1,5 @@
 # Server
-오픈러닝팀 백엔드 서버입니다.
+오픈러닝 노디 백엔드 서버입니다.
 
 ---
 
@@ -9,17 +9,18 @@
 src
 ├── main
 │   ├── java
-│   │   └── com.umc.halo
+│   │   └── com._penLearning.Noddi
 │   │       ├── domain
-│   │       │   ├── content
-│   │       │   ├── member
+│   │       │   ├── meeting
 │   │       │   ├── notification
-│   │       │   ├── record
-│   │       │   ├── setting
-│   │       │   ├── tag
-│   │       │   └── term
+│   │       │   ├── organization
+│   │       │   ├── project
+│   │       │   ├── qa
+│   │       │   ├── summary
+│   │       │   ├── team
+│   │       │   └── user
 │   │       ├── global
-│   │       └── HaloServerApplication.java
+│   │       └── NoddiApplication.java
 │   └── resources
 └── test
 ```
