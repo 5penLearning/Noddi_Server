@@ -1,0 +1,10 @@
+package com._penLearning.Noddi.domain.meeting.repository;
+
+import com._penLearning.Noddi.domain.meeting.entity.Meeting;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface MeetingRepository extends JpaRepository<Meeting, Long> {
+    List<Meeting> findByTeam_TeamIdOrderByCreatedAtDesc(Long teamId);
+}
