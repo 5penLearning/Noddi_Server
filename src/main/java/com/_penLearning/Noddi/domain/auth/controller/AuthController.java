@@ -1,7 +1,9 @@
-package com._penLearning.Noddi.domain.user.controller;
+package com._penLearning.Noddi.domain.auth.controller;
 
-import com._penLearning.Noddi.domain.user.dto.SignupRequest;
-import com._penLearning.Noddi.domain.user.service.AuthService;
+import com._penLearning.Noddi.domain.auth.dto.LoginRequest;
+import com._penLearning.Noddi.domain.auth.dto.SignupRequest;
+import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
+import com._penLearning.Noddi.domain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,5 +24,11 @@ public class AuthController {
     public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest request) {
         authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 완료되었습니다.");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        TokenResponse tokenResponse = authService.login(request);
+        return ResponseEntity.ok(tokenResponse);
     }
 }
