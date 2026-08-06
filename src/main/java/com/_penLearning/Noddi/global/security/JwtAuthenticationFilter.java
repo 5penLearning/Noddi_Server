@@ -1,5 +1,8 @@
 package com._penLearning.Noddi.global.security;
 
+import com._penLearning.Noddi.domain.auth.code.AuthErrorCode;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,13 +27,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
 
         if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
-            Long userId = jwtProvider.getUserId(token);
+            try {
+                if (jwtProvider.validateToken(token)) {
+                    Long userId = jwtProvider.getUserId(token);
 
-            // SecurityContext에 Principal로 userId 등록
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (ExpiredJwtException e) {
+                // 토큰 만료 시 에러 코드 저장
+                request.setAttribute("exception", AuthErrorCode.EXPIRED_TOKEN);
+            } catch (JwtException | IllegalArgumentException e) {
+                // 서명 불일치, 유효하지 않은 토큰 등
+                request.setAttribute("exception", AuthErrorCode.INVALID_TOKEN);
+            }
         }
 
         filterChain.doFilter(request, response);

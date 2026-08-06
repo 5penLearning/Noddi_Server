@@ -1,9 +1,11 @@
 package com._penLearning.Noddi.domain.auth.controller;
 
+import com._penLearning.Noddi.domain.auth.code.AuthApi;
 import com._penLearning.Noddi.domain.auth.dto.LoginRequest;
 import com._penLearning.Noddi.domain.auth.dto.SignupRequest;
 import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
 import com._penLearning.Noddi.domain.auth.service.AuthService;
+import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,19 +18,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthApi {
 
     private final AuthService authService;
 
-    @PostMapping("/signup")
-    public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest request) {
+    @Override
+    public ResponseEntity<ApiResponse<Void>> signup(SignupRequest request) {
         authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 완료되었습니다.");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.onSuccess("회원가입이 완료되었습니다."));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+    @Override
+    public ResponseEntity<ApiResponse<TokenResponse>> login(LoginRequest request) {
         TokenResponse tokenResponse = authService.login(request);
-        return ResponseEntity.ok(tokenResponse);
+        return ResponseEntity.ok(ApiResponse.onSuccess("로그인 성공", tokenResponse));
     }
 }

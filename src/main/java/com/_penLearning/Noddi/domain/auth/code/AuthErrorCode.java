@@ -8,11 +8,19 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum AuthErrorCode implements BaseErrorCode {
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH400_1", "이메일 또는 비밀번호가 올바르지 않습니다."),
-    INACTIVE_USER(HttpStatus.FORBIDDEN, "AUTH400_2", "비활성화된 계정입니다."),
-    DUPLICATE_EMAIL(HttpStatus.BAD_REQUEST, "AUTH400_3", "이미 사용 중인 이메일입니다."),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH400_4", "유효하지 않은 토큰입니다."),
-    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH400_5", "만료된 토큰입니다.");
+    // 400 BAD_REQUEST
+    INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "AUTH400_1", "올바르지 않은 입력값입니다."),
+
+    // 401 UNAUTHORIZED
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH401_1", "이메일 또는 비밀번호가 올바르지 않습니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_2", "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_3", "만료된 토큰입니다."),
+
+    // 403 FORBIDDEN
+    FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH403_1", "접근 권한이 없습니다."),
+
+    // 409 CONFLICT
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH409_1", "이미 사용 중인 이메일입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
