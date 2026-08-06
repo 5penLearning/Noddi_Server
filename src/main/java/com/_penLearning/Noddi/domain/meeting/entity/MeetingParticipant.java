@@ -10,16 +10,18 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "MeetingParticipant", uniqueConstraints = {
+@Table(name = "MeetingParticipant",
+        uniqueConstraints = {
+        //동일 회의 동일 유저 중복 참가 불가
         @UniqueConstraint(columnNames = {"meetingId", "userId"})
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MeetingParticipant {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long participantId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meetingId", nullable = false)
