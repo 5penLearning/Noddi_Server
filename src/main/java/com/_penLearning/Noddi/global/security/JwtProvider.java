@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.global.security;
 
-import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
+import com._penLearning.Noddi.domain.auth.dto.TokenResponseDto;
+import com._penLearning.Noddi.domain.auth.entity.AuthMember;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -14,39 +15,31 @@ import java.util.Date;
 public class JwtProvider {
     private final SecretKey key;
     private final long accessTokenExpiration;
-    private final long refreshTokenExpiration;
 
     public JwtProvider(
             @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
-            @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
+            @Value("${jwt.access-token-expiration}") long accessTokenExpiration
+    ) {
 
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.accessTokenExpiration = accessTokenExpiration;
-        this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
-    // Access Token 및 Refresh Token 발급 (userId, email 저장)
-    public TokenResponse generateToken(Long userId, String email) {
-        long now = (new Date()).getTime();
-        Date accessTokenExpiresIn = new Date(now + accessTokenExpiration);
-        Date refreshTokenExpiresIn = new Date(now + refreshTokenExpiration);
+    // Access Token 발급 (userId, email 저장)
+    public TokenResponseDto generateToken(Long userId, String email) {
+        Date now = new Date();
+        Date accessTokenExpiresIn = new Date(now.getTime() + accessTokenExpiration);
 
         String accessToken = Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("email", email)
+                .issuedAt(now)
                 .expiration(accessTokenExpiresIn)
                 .signWith(key)
                 .compact();
 
-        String refreshToken = Jwts.builder()
-                .subject(String.valueOf(userId))
-                .expiration(refreshTokenExpiresIn)
-                .signWith(key)
-                .compact();
-
-        return new TokenResponse("Bearer", accessToken, refreshToken);
+        return new TokenResponseDto("Bearer", accessToken);
     }
 
     // 토큰에서 userId(Subject) 추출
@@ -57,19 +50,11 @@ public class JwtProvider {
 
     // 토큰 유효성 검증
     public boolean validateToken(String token) {
-        try {
-            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
-            return true;
-        } catch (SecurityException | MalformedJwtException e) {
-            // 잘못된 JWT 서명
-        } catch (ExpiredJwtException e) {
-            // 만료된 JWT 토큰
-        } catch (UnsupportedJwtException e) {
-            // 지원되지 않는 JWT 토큰
-        } catch (IllegalArgumentException e) {
-            // 잘못된 JWT 토큰
-        }
-        return false;
+        Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token);
+        return true;
     }
 
     private Claims parseClaims(String token) {
@@ -82,5 +67,21 @@ public class JwtProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
+    }
+
+    //토큰에서 Claims를 추출하여 AuthMember 객체로 변환
+    public AuthMember getAuthMember(String token) {
+        Claims claims = parseClaims(token);
+
+        // Subject에 저장된 userId 추출 (String -> Long 변환)
+        Long userId = Long.parseLong(claims.getSubject());
+
+        // Custom Claim에서 email 추출
+        String email = claims.get("email", String.class);
+
+        return AuthMember.builder()
+                .userId(userId)
+                .email(email)
+                .build();
     }
 }

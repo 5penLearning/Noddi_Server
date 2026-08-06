@@ -1,9 +1,8 @@
 package com._penLearning.Noddi.domain.auth.controller;
 
 import com._penLearning.Noddi.domain.auth.code.AuthApi;
-import com._penLearning.Noddi.domain.auth.dto.LoginRequest;
-import com._penLearning.Noddi.domain.auth.dto.SignupRequest;
-import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
+import com._penLearning.Noddi.domain.auth.dto.AuthRequestDto;
+import com._penLearning.Noddi.domain.auth.dto.AuthResponseDto;
 import com._penLearning.Noddi.domain.auth.service.AuthService;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
@@ -23,15 +22,23 @@ public class AuthController implements AuthApi {
     private final AuthService authService;
 
     @Override
-    public ResponseEntity<ApiResponse<Void>> signup(SignupRequest request) {
-        authService.signup(request);
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<AuthResponseDto.AuthSignupResponseDto>> signup(
+            @Valid @RequestBody AuthRequestDto.SignupRequestDto request) {
+
+        AuthResponseDto.AuthSignupResponseDto response = authService.signup(request);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.onSuccess("회원가입이 완료되었습니다."));
+                .body(ApiResponse.onSuccess("회원가입이 완료되었습니다.", response));
     }
 
     @Override
-    public ResponseEntity<ApiResponse<TokenResponse>> login(LoginRequest request) {
-        TokenResponse tokenResponse = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.onSuccess("로그인 성공", tokenResponse));
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponseDto.AuthLoginResponseDto>> login(
+            @Valid @RequestBody AuthRequestDto.LoginRequestDto request) {
+
+        AuthResponseDto.AuthLoginResponseDto response = authService.login(request);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("로그인 성공", response));
     }
 }

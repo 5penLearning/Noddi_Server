@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.global.security;
 
 import com._penLearning.Noddi.domain.auth.code.AuthErrorCode;
+import com._penLearning.Noddi.domain.auth.entity.AuthMember;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -18,40 +19,50 @@ import java.util.Collections;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final JwtProvider jwtProvider;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
 
         String token = resolveToken(request);
 
-        if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
-            try {
-                if (jwtProvider.validateToken(token)) {
-                    Long userId = jwtProvider.getUserId(token);
+        // 1. 토큰이 없거나 Bearer 형식이 아니면 즉시 다음 필터로 이동
+        if (!StringUtils.hasText(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+        // 2. 토큰 검증 및 SecurityContext 설정
+        try {
+            if (jwtProvider.validateToken(token)) {
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            } catch (ExpiredJwtException e) {
-                // 토큰 만료 시 에러 코드 저장
-                request.setAttribute("exception", AuthErrorCode.EXPIRED_TOKEN);
-            } catch (JwtException | IllegalArgumentException e) {
-                // 서명 불일치, 유효하지 않은 토큰 등
-                request.setAttribute("exception", AuthErrorCode.INVALID_TOKEN);
+                AuthMember authMember = jwtProvider.getAuthMember(token);
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(authMember, null, Collections.emptyList());
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+        } catch (ExpiredJwtException e) {
+            // 토큰 만료 시 Custom Exception 전달
+            request.setAttribute("exception", AuthErrorCode.EXPIRED_TOKEN);
+        } catch (JwtException | IllegalArgumentException e) {
+            // 서명 불일치, 손상된 토큰 등
+            request.setAttribute("exception", AuthErrorCode.INVALID_TOKEN);
         }
 
         filterChain.doFilter(request, response);
     }
 
     private String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
+            return bearerToken.substring(BEARER_PREFIX.length());
         }
         return null;
     }

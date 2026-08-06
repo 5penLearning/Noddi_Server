@@ -2,7 +2,7 @@ spring:
   application:
     name: Noddi
   datasource:
-    url: jdbc:mysql://localhost:3306/Noddi?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/noddi?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
@@ -14,8 +14,7 @@ spring:
         format_sql: true
         default_batch_fetch_size: 100
 jwt:
-  secret: YOUR_VERY_LONG_SECRET_KEY_EXCLUSIVELY_FOR_HS512_ALGORITHM_MIN_64_BYTES
+  secret: asdlkjasldfjaasdfasdfasdfasdfasdfasdfassadfasdfdfasdfasdfas
   access-token-expiration: 3600000
-  refresh-token-expiration: 1209600000
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
