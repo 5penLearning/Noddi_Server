@@ -16,3 +16,6 @@ spring:
 jwt:
   secret: YOUR_VERY_LONG_SECRET_KEY_EXCLUSIVELY_FOR_HS512_ALGORITHM_MIN_64_BYTES
   expiration: 86400000
+daily:
+  api:
+    key: ${DAILY_API_KEY}

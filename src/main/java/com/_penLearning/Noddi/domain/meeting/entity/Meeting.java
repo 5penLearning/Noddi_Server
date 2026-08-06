@@ -47,7 +47,7 @@ public class Meeting extends BaseEntity {
     private LocalDateTime endedAt;
 
     //webRTC 방 ID LAZY 방식으로 주입(회의 시작 버튼을 눌러야 회의가 열림)
-    private String roomId;
+    private String roomName;
     private String recordingUrl;
     @Lob
     private String transcriptText;
@@ -66,7 +66,7 @@ public class Meeting extends BaseEntity {
             throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_START);
         }
         this.status = MeetingStatus.IN_PROGRESS;
-        this.roomId = roomId;
+        this.roomName = roomId;
         this.startedAt = LocalDateTime.now();
     }
 
