@@ -15,4 +15,5 @@ spring:
         default_batch_fetch_size: 100
 jwt:
   secret: YOUR_VERY_LONG_SECRET_KEY_EXCLUSIVELY_FOR_HS512_ALGORITHM_MIN_64_BYTES
-  expiration: 86400000
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
