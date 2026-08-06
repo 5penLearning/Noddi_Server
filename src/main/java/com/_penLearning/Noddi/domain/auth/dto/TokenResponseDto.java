@@ -1,6 +1,6 @@
 package com._penLearning.Noddi.domain.auth.dto;
 
-public record TokenResponse(
+public record TokenResponseDto(
         String grantType,
         String accessToken,
         String refreshToken

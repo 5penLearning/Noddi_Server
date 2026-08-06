@@ -1,8 +1,8 @@
 package com._penLearning.Noddi.domain.auth.code;
 
-import com._penLearning.Noddi.domain.auth.dto.LoginRequest;
-import com._penLearning.Noddi.domain.auth.dto.SignupRequest;
-import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
+import com._penLearning.Noddi.domain.auth.dto.LoginRequestDto;
+import com._penLearning.Noddi.domain.auth.dto.SignupRequestDto;
+import com._penLearning.Noddi.domain.auth.dto.TokenResponseDto;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,7 +26,7 @@ public interface AuthApi {
     })
     @PostMapping("/signup")
     ResponseEntity<ApiResponse<Void>> signup(
-            @Valid @RequestBody SignupRequest request
+            @Valid @RequestBody SignupRequestDto request
     );
 
     @Operation(summary = "일반 로그인", description = "이메일과 비밀번호로 로그인하여 JWT Access Token을 발급받습니다.")
@@ -36,7 +36,7 @@ public interface AuthApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "비활성화된 계정", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     @PostMapping("/login")
-    ResponseEntity<ApiResponse<TokenResponse>> login(
-            @Valid @RequestBody LoginRequest request
+    ResponseEntity<ApiResponse<TokenResponseDto>> login(
+            @Valid @RequestBody LoginRequestDto request
     );
 }

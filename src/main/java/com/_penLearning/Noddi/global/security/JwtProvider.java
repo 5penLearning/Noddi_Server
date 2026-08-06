@@ -1,6 +1,6 @@
 package com._penLearning.Noddi.global.security;
 
-import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
+import com._penLearning.Noddi.domain.auth.dto.TokenResponseDto;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -28,7 +28,7 @@ public class JwtProvider {
     }
 
     // Access Token 및 Refresh Token 발급 (userId, email 저장)
-    public TokenResponse generateToken(Long userId, String email) {
+    public TokenResponseDto generateToken(Long userId, String email) {
         long now = (new Date()).getTime();
         Date accessTokenExpiresIn = new Date(now + accessTokenExpiration);
         Date refreshTokenExpiresIn = new Date(now + refreshTokenExpiration);
@@ -46,7 +46,7 @@ public class JwtProvider {
                 .signWith(key)
                 .compact();
 
-        return new TokenResponse("Bearer", accessToken, refreshToken);
+        return new TokenResponseDto("Bearer", accessToken, refreshToken);
     }
 
     // 토큰에서 userId(Subject) 추출

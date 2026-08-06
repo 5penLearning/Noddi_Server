@@ -1,9 +1,9 @@
 package com._penLearning.Noddi.domain.auth.service;
 
 import com._penLearning.Noddi.domain.auth.code.AuthErrorCode;
-import com._penLearning.Noddi.domain.auth.dto.LoginRequest;
-import com._penLearning.Noddi.domain.auth.dto.SignupRequest;
-import com._penLearning.Noddi.domain.auth.dto.TokenResponse;
+import com._penLearning.Noddi.domain.auth.dto.LoginRequestDto;
+import com._penLearning.Noddi.domain.auth.dto.SignupRequestDto;
+import com._penLearning.Noddi.domain.auth.dto.TokenResponseDto;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.domain.organization.entity.Organization;
@@ -11,7 +11,6 @@ import com._penLearning.Noddi.domain.organization.repository.OrganizationReposit
 import com._penLearning.Noddi.global.exception.GeneralException;
 import com._penLearning.Noddi.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +25,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
 
     @Transactional
-    public Long signup(SignupRequest request){
+    public Long signup(SignupRequestDto request){
         // 1. 이메일 중복 검사
         if (userRepository.existsByEmail(request.email())) {
             throw new GeneralException(AuthErrorCode.DUPLICATE_EMAIL);
@@ -40,6 +39,7 @@ public class AuthService {
 
         // 3. User 엔티티 생성 및 저장
         User user = User.builder()
+                .organization(organization)
                 .email(request.email())
                 .password(encodedPassword)
                 .name(request.name())
@@ -48,7 +48,7 @@ public class AuthService {
         return userRepository.save(user).getUserId();
     }
 
-    public TokenResponse login(LoginRequest request) {
+    public TokenResponseDto login(LoginRequestDto request) {
         // 1. 이메일 존재 여부 확인
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_CREDENTIALS));
