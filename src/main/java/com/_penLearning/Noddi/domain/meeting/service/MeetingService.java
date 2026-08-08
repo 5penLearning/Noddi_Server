@@ -1,6 +1,6 @@
 package com._penLearning.Noddi.domain.meeting.service;
 
-갸import com._penLearning.Noddi.domain.meeting.code.AiStatus;
+import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
 import com._penLearning.Noddi.domain.meeting.code.MeetingStatus;
 import com._penLearning.Noddi.domain.meeting.dto.MeetingRequestDto;
