@@ -20,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -32,11 +34,34 @@ public class MeetingService {
     private final UserRepository userRepository;
     private final WebRtcClient webRtcClient;
 
+    public MeetingResponseDto.Info getMeetingInfo(Long meetingId, Long currentUserId) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(meeting.getTeam(), user);
+        return MeetingResponseDto.Info.from(meeting);
+    }
+
+    public List<MeetingResponseDto.Info> getMeetingsByTeam(Long teamId, Long currentUserId) {
+        Team team = getTeamOrThrow(teamId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(team, user);
+        return meetingRepository.findAllByTeam(team).stream()
+                .map(MeetingResponseDto.Info::from)
+                .toList();
+    }
+
+    public List<MeetingResponseDto.ParticipantInfo> getParticipants(Long meetingId, Long currentUserId) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(meeting.getTeam(), user);
+        return meetingParticipantRepository.findAllByMeeting(meeting).stream()
+                .map(MeetingResponseDto.ParticipantInfo::from)
+                .toList();
+    }
     //회의 예약 생성 (SCHEDULED)
     @Transactional
     public MeetingResponseDto.Info createMeeting(MeetingRequestDto.Create request, Long currentUserId) {
-        Team team = teamRepository.findById(request.getTeamId())
-                .orElseThrow(() -> new GeneralException(MeetingErrorCode.TEAM_NOT_FOUND));
+        Team team = getTeamOrThrow(request.getTeamId());
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(team, user);
 
@@ -113,6 +138,10 @@ public class MeetingService {
         }
     }
 
+    private Team getTeamOrThrow(Long teamId) {
+        return teamRepository.findById(teamId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.TEAM_NOT_FOUND));
+    }
     private Meeting getMeetingOrThrow(Long meetingId) {
         return meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));

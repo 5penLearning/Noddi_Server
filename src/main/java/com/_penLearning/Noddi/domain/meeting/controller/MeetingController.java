@@ -11,12 +11,38 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/v1/meeting")
+@RequestMapping("/api/v1/meetings")
 @RequiredArgsConstructor
 public class MeetingController implements MeetingApi {
 
     private final MeetingService meetingService;
+
+    @Override
+    @GetMapping("/{meetingId}")
+    public ApiResponse<MeetingResponseDto.Info> getMeeting(
+            @PathVariable Long meetingId, @AuthenticationPrincipal AuthMember authMember) {
+        MeetingResponseDto.Info response = meetingService.getMeetingInfo(meetingId, authMember.getUserId());
+        return ApiResponse.onSuccess("회의 정보 조회가 완료되었습니다.", response);
+    }
+
+    @Override
+    @GetMapping
+    public ApiResponse<List<MeetingResponseDto.Info>> getMeetingsByTeam(
+            @RequestParam Long teamId, @AuthenticationPrincipal AuthMember authMember) {
+        List<MeetingResponseDto.Info> response = meetingService.getMeetingsByTeam(teamId, authMember.getUserId());
+        return ApiResponse.onSuccess("팀 회의 목록 조회가 완료되었습니다.", response);
+    }
+
+    @Override
+    @GetMapping("/{meetingId}/participants")
+    public ApiResponse<List<MeetingResponseDto.ParticipantInfo>> getParticipants(
+            @PathVariable Long meetingId, @AuthenticationPrincipal AuthMember authMember) {
+        List<MeetingResponseDto.ParticipantInfo> response = meetingService.getParticipants(meetingId, authMember.getUserId());
+        return ApiResponse.onSuccess("회의 참가자 목록 조회가 완료되었습니다.", response);
+    }
 
     @Override
     @PostMapping
