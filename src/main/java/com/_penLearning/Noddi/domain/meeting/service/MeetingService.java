@@ -53,7 +53,7 @@ public class MeetingService {
 
     @Transactional
     public MeetingResponseDto.Start startMeeting(Long meetingId, Long currentUserId) {
-        Meeting meeting = getMeetingOrThrow(meetingId);
+        Meeting meeting = getMeetingWithLockOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
 
@@ -63,7 +63,7 @@ public class MeetingService {
         }
 
         String roomName = webRtcClient.createRoom();
-        meeting.start();
+        meeting.start(roomName);
         saveParticipantIfabsent(meeting, user);
         log.info("[MeetingService] 회의 시작 완료: meetingId={}, roomName={}",
                 meetingId, roomName);
@@ -121,6 +121,11 @@ public class MeetingService {
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(MeetingErrorCode.USER_NOT_FOUND));
+    }
+
+    private Meeting getMeetingWithLockOrThrow(Long meetingId) {
+        return meetingRepository.findByIdWithPessimisticLock(meetingId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
     }
 
     private void saveParticipantIfabsent(Meeting meeting, User user) {

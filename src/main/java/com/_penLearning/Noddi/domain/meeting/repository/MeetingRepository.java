@@ -18,7 +18,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
      * - 사용 시점: start() 호출 시 동시에 여러 명이 눌러도 방이 1개만 생성되도록 보장
      * - 동작: SELECT ... FOR UPDATE → 트랜잭션 종료 전까지 다른 트랜잭션이 대기
      */
-    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Meeting m WHERE m.meetingId = :meetingId")
     Optional<Meeting> findByIdWithPessimisticLock(@Param("meetingId") Long meetingId);
     List<Meeting> findAllByTeam(Team team);

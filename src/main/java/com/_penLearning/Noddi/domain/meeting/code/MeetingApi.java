@@ -11,8 +11,59 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import java.util.List;
+
 @Tag(name = "02. Meeting API", description = "회의 예약/시작/종료/AI 요약 관련 API")
 public interface MeetingApi {
+
+    @Operation(summary = "회의 단건 조회", description = "회의의 현재 상태, 접속 URL, AI 요약 상태 등 상세 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<MeetingResponseDto.Info> getMeeting(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+    @Operation(summary = "팀별 회의 목록 조회", description = "특정 팀의 모든 회의(예약/진행/종료) 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "팀을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<List<MeetingResponseDto.Info>> getMeetingsByTeam(
+            Long teamId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+    @Operation(summary = "회의 참가자 목록 조회", description = "해당 회의에 참가한 유저 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<List<MeetingResponseDto.ParticipantInfo>> getParticipants(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
 
     @Operation(summary = "회의 예약 생성", description = "팀의 회의를 예약 상태(SCHEDULED)로 등록합니다. Daily.co 방은 아직 생성되지 않습니다.")
     @ApiResponses(value = {
