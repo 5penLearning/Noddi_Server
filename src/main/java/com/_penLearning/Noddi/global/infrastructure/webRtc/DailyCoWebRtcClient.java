@@ -1,5 +1,7 @@
 package com._penLearning.Noddi.global.infrastructure.webRtc;
 
+import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
+import com._penLearning.Noddi.global.exception.GeneralException;
 import com._penLearning.Noddi.global.infrastructure.webRtc.dto.DailyCreateRoomResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,18 +25,20 @@ public class DailyCoWebRtcClient implements WebRtcClient{
         //방 이름 고유화
         String roomName = "noddi-" + UUID.randomUUID().toString().substring(0, 8);
 
-        DailyCreateRoomResponseDto response = restClient.post()
-                .uri("/rooms")
-                .body(Map.of("name", roomName,
-                        "privacy", "private"
-                        , "properties", Map.of(
-                                "enable_recording", "cloud"
-                        )
-                ))
-                .retrieve()
-                .body(DailyCreateRoomResponseDto.class);
-        log.info("[Daily.co] 방 생성 완료: roomName={}", response.getName());
-        return response.getName();
+        try {
+            DailyCreateRoomResponseDto response = restClient.post()
+                    .uri("/rooms")
+                    .body(Map.of("name", roomName, "privacy", "private", "properties", Map.of("enable_recording", "cloud")))
+                    .retrieve()
+                    .body(DailyCreateRoomResponseDto.class);
+
+            log.info("[Daily.co] 방 생성 완료: roomName={}", response.getName());
+            return response.getName();
+        } catch (Exception e) {
+            // 💡 타임아웃이나 Daily.co API 에러 발생 시 예쁜 커스텀 에러로 변환!
+            log.error("[Daily.co] 방 생성 통신 실패/타임아웃 발생: {}", e.getMessage());
+            throw new GeneralException(MeetingErrorCode.WEBRTC_ROOM_CREATE_FAILED);
+        }
     }
 
     @Override
