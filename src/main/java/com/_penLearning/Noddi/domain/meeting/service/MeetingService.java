@@ -110,9 +110,19 @@ public class MeetingService {
         log.info("[MeetingService] 회의 종료 완료: meetingId={}", meetingId);
     }
 
+    @Transactional
+    public void endMeetingByRoomName(String roomName) {
+        Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
+        // 이미 종료된 회의가 아닐 때만 종료 처리
+        if (meeting.getStatus() == MeetingStatus.IN_PROGRESS) {
+            meeting.end();
+            log.info("[MeetingService] Webhook에 의해 회의 자동 종료 완료: roomName={}", roomName);
+        }
+    }
+
     //웹훅 수신: 녹음본 S3 업로드 완료 시 URL 갱신
-    public void updateRecordingUrl(Long meetingId, String recordingUrl) {
-        Meeting meeting = getMeetingOrThrow(meetingId);
+    public void updateRecordingUrl(String roomName, String recordingUrl) {
+        Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
         meeting.updateRecordingUrl(recordingUrl);
         log.info("[MeetingService] Webhook 녹음본 URL 갱신 완료: meetingId={}, url={}",
                 meeting.getMeetingId(), recordingUrl);
@@ -144,6 +154,11 @@ public class MeetingService {
     }
     private Meeting getMeetingOrThrow(Long meetingId) {
         return meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
+    }
+
+    private Meeting getMeetingByRoomNameOrThrow(String roomName) {
+        return meetingRepository.findByRoomName(roomName)
                 .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
     }
 

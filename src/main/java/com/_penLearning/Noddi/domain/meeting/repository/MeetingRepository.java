@@ -22,4 +22,5 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     @Query("SELECT m FROM Meeting m WHERE m.meetingId = :meetingId")
     Optional<Meeting> findByIdWithPessimisticLock(@Param("meetingId") Long meetingId);
     List<Meeting> findAllByTeam(Team team);
+    Optional<Meeting> findByRoomName(String roomName);
 }
