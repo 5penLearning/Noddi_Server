@@ -152,7 +152,7 @@ public class MeetingService {
     }
 
     private void validateTeamMember(Team team, User user) {
-        boolean isMember = teamMemberRepository.existsByTeamTeamAndUser(team, user);
+        boolean isMember = teamMemberRepository.existsByTeamAndUser(team, user);
         if (!isMember) {
             throw new GeneralException(MeetingErrorCode.NOT_TEAM_MEMBER);
         }
