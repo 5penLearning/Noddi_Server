@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.meeting.repository;
 
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
+import com._penLearning.Noddi.domain.team.entity.Team;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -20,4 +21,5 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     @Lock(LockModeType.PESSIMISTIC_READ)
     @Query("SELECT m FROM Meeting m WHERE m.meetingId = :meetingId")
     Optional<Meeting> findByIdWithPessimisticLock(@Param("meetingId") Long meetingId);
+    List<Meeting> findAllByTeam(Team team);
 }

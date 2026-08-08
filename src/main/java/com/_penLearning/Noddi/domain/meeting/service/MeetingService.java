@@ -1,7 +1,136 @@
 package com._penLearning.Noddi.domain.meeting.service;
 
+import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
+import com._penLearning.Noddi.domain.meeting.code.MeetingStatus;
+import com._penLearning.Noddi.domain.meeting.dto.MeetingRequestDto;
+import com._penLearning.Noddi.domain.meeting.dto.MeetingResponseDto;
+import com._penLearning.Noddi.domain.meeting.entity.Meeting;
+import com._penLearning.Noddi.domain.meeting.entity.MeetingParticipant;
+import com._penLearning.Noddi.domain.meeting.repository.MeetingParticipantRepository;
+import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
+import com._penLearning.Noddi.domain.team.entity.Team;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamRepository;
+import com._penLearning.Noddi.domain.user.entity.User;
+import com._penLearning.Noddi.domain.user.repository.UserRepository;
+import com._penLearning.Noddi.global.exception.GeneralException;
+import com._penLearning.Noddi.global.infrastructure.webRtc.WebRtcClient;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MeetingService {
+    private final MeetingRepository meetingRepository;
+    private final MeetingParticipantRepository meetingParticipantRepository;
+    private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
+    private final UserRepository userRepository;
+    private final WebRtcClient webRtcClient;
+
+    //회의 예약 생성 (SCHEDULED)
+    @Transactional
+    public MeetingResponseDto.Info createMeeting(MeetingRequestDto.Create request, Long currentUserId) {
+        Team team = teamRepository.findById(request.getTeamId())
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.TEAM_NOT_FOUND));
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(team, user);
+
+        Meeting meeting = Meeting.builder()
+                .team(team)
+                .title(request.getTitle())
+                .createdBy(user)
+                .build();
+        Meeting savedMeeting = meetingRepository.save(meeting);
+        log.info("[MeetingService] 회의 예약 생성 완료: meetingId={}",
+                savedMeeting.getMeetingId());
+        return MeetingResponseDto.Info.from(savedMeeting);
+    }
+
+    @Transactional
+    public MeetingResponseDto.Start startMeeting(Long meetingId, Long currentUserId) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(meeting.getTeam(), user);
+
+        if(meeting.getStatus() == MeetingStatus.IN_PROGRESS) {
+            log.info("[MeetingService] 이미 진행 중인 회의 재입장: meetingId={}", meetingId);
+            return MeetingResponseDto.Start.from(meeting);
+        }
+
+        String roomName = webRtcClient.createRoom();
+        meeting.start();
+        saveParticipantIfabsent(meeting, user);
+        log.info("[MeetingService] 회의 시작 완료: meetingId={}, roomName={}",
+                meetingId, roomName);
+        return MeetingResponseDto.Start.from(meeting);
+
+    }
+
+    @Transactional
+    public void endMeeting(Long meetingId, Long currentUserId) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(meeting.getTeam(), user);
+
+        meeting.end();
+
+        if(meeting.getRoomName() != null) {
+            webRtcClient.deletRoom(meeting.getRoomName());
+        }
+        log.info("[MeetingService] 회의 종료 완료: meetingId={}", meetingId);
+    }
+
+    //웹훅 수신: 녹음본 S3 업로드 완료 시 URL 갱신
+    public void updateRecordingUrl(Long meetingId, String recordingUrl) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        meeting.updateRecordingUrl(recordingUrl);
+        log.info("[MeetingService] Webhook 녹음본 URL 갱신 완료: meetingId={}, url={}",
+                meeting.getMeetingId(), recordingUrl);
+    }
+
+    @Transactional
+    public void triggerSummary(Long meetingId, Long currentUserId) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(meeting.getTeam(), user);
+
+        if (meeting.getRecordingUrl() == null) {
+            throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
+        }
+        meeting.startAiProcessing();
+        log.info("[MeetingService] AI 요약 요청 수신 완료: meetingId={}", meetingId);
+    }
+
+    private void validateTeamMember(Team team, User user) {
+        boolean isMember = teamMemberRepository.existsByTeamTeamAndUser(team, user);
+        if (!isMember) {
+            throw new GeneralException(MeetingErrorCode.NOT_TEAM_MEMBER);
+        }
+    }
+
+    private Meeting getMeetingOrThrow(Long meetingId) {
+        return meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
+    }
+
+    private User getUserOrThrow(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.USER_NOT_FOUND));
+    }
+
+    private void saveParticipantIfabsent(Meeting meeting, User user) {
+        boolean exists = meetingParticipantRepository.findByMeetingAndUser(meeting, user).isPresent();
+        if (!exists) {
+            MeetingParticipant participant = MeetingParticipant.builder()
+                    .meeting(meeting)
+                    .user(user)
+                    .build();
+            meetingParticipantRepository.save(participant);
+        }
+    }
 }

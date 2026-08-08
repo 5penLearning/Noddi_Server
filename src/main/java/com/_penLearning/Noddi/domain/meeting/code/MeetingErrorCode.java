@@ -19,6 +19,8 @@ public enum MeetingErrorCode implements BaseErrorCode {
     NOT_TEAM_MEMBER(HttpStatus.FORBIDDEN, "MEETING403_1", "해당 팀의 팀원만 회의에 접근할 수 있습니다."),
     // 404 Not Found: 회의를 찾을 수 없는 경우
     MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "MEETING404_1", "존재하지 않는 회의입니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEETING404_2", "존재하지 않는 팀입니다."),
+    TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "MEETING404_3", "존재하지 않는 유저입니다."),
     // 500 Internal Server Error: 외부 연동 장애
     WEBRTC_ROOM_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "MEETING500_1", "WebRTC 방 생성 중 오류가 발생했습니다.");
 

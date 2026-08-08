@@ -3,6 +3,7 @@ package com._penLearning.Noddi.domain.meeting.dto;
 import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.meeting.code.MeetingStatus;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
+import com._penLearning.Noddi.domain.meeting.entity.MeetingParticipant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -59,6 +60,24 @@ public class MeetingResponseDto {
                     .meetingId(meeting.getMeetingId())
                     .roomName(meeting.getRoomName())
                     .roomUrl(url)
+                    .build();
+        }
+    }
+
+
+    @Getter
+    @Builder
+    public static class ParticipantInfo {
+        private Long userId;
+        private String name;
+        private String email;
+        private LocalDateTime joinedAt;
+        public static ParticipantInfo from(MeetingParticipant participant) {
+            return ParticipantInfo.builder()
+                    .userId(participant.getUser().getUserId())
+                    .name(participant.getUser().getName())
+                    .email(participant.getUser().getEmail())
+                    .joinedAt(participant.getJoinedAt())
                     .build();
         }
     }

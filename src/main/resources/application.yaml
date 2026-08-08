@@ -13,9 +13,29 @@ spring:
       hibernate:
         format_sql: true
         default_batch_fetch_size: 100
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # Mail (SMTP) 설정
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME} # 발송 서버 계정 이메일
+    password: ${MAIL_PASSWORD} # Google 앱 발급 비밀번호 (16자리)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 jwt:
-  secret: YOUR_VERY_LONG_SECRET_KEY_EXCLUSIVELY_FOR_HS512_ALGORITHM_MIN_64_BYTES
-  expiration: 86400000
-daily:
-  api:
-    key: ${DAILY_API_KEY}
+  secret: TEMPKEYTEMPKEYTEMPKEYTEMPKEY1234567890abcdefghijklmnopqrstuvw1234
+  access-token-expiration: 3600000
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
