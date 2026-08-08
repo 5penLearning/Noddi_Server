@@ -1,5 +1,6 @@
 package com._penLearning.Noddi.domain.meeting.service;
 
+갸import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
 import com._penLearning.Noddi.domain.meeting.code.MeetingStatus;
 import com._penLearning.Noddi.domain.meeting.dto.MeetingRequestDto;
@@ -133,6 +134,15 @@ public class MeetingService {
         Meeting meeting = getMeetingOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
+
+        //  ENDED(종료된) 회의만 요약 가능
+        if (meeting.getStatus() != MeetingStatus.ENDED) {
+            throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_SUMMARY);
+        }
+        // 이미 PROCESSING(요약 중)이거나 COMPLETED(완료)면 중복 연타 거부
+        if (meeting.getAiStatus() == AiStatus.PROCESSING || meeting.getAiStatus() == AiStatus.COMPLETED) {
+            throw new GeneralException(MeetingErrorCode.ALREADY_PROCESSING_SUMMARY);
+        }
 
         if (meeting.getRecordingUrl() == null) {
             throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
