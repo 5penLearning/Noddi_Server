@@ -61,12 +61,12 @@ public class Meeting extends BaseEntity {
         this.aiStatus = AiStatus.PENDING;
     }
 
-    public void start(String roomId) {
+    public void start(String roomName) {
         if (this.status != MeetingStatus.SCHEDULED) {
             throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_START);
         }
         this.status = MeetingStatus.IN_PROGRESS;
-        this.roomName = roomId;
+        this.roomName = roomName;
         this.startedAt = LocalDateTime.now();
     }
 
