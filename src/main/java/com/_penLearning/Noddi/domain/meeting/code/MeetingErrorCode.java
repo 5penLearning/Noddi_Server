@@ -17,6 +17,7 @@ public enum MeetingErrorCode implements BaseErrorCode {
     RECORDING_NOT_READY(HttpStatus.BAD_REQUEST, "MEETING400_5", "녹음본 파일이 아직 인코딩 중입니다. 잠시 후 다시 시도해 주세요."),
     // 403 Forbidden: 해당 팀원이 아닌 경우
     NOT_TEAM_MEMBER(HttpStatus.FORBIDDEN, "MEETING403_1", "해당 팀의 팀원만 회의에 접근할 수 있습니다."),
+    NOT_MEETING_CREATOR(HttpStatus.FORBIDDEN, "MEETING403_2", "해당 팀의 회의의 생성자만 종료할 수 있습니다."),
     // 404 Not Found: 회의를 찾을 수 없는 경우
     MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "MEETING404_1", "존재하지 않는 회의입니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEETING404_2", "존재하지 않는 유저입니다."),

@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class MeetingService {
     private final TeamMemberRepository teamMemberRepository;
     private final UserRepository userRepository;
     private final WebRtcClient webRtcClient;
+    private final TransactionTemplate transactionTemplate;
 
     public MeetingResponseDto.Info getMeetingInfo(Long meetingId, Long currentUserId) {
         Meeting meeting = getMeetingOrThrow(meetingId);
@@ -77,38 +79,59 @@ public class MeetingService {
         return MeetingResponseDto.Info.from(savedMeeting);
     }
 
-    @Transactional
     public MeetingResponseDto.Start startMeeting(Long meetingId, Long currentUserId) {
-        Meeting meeting = getMeetingWithLockOrThrow(meetingId);
+        Meeting meeting = getMeetingOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
 
         if(meeting.getStatus() == MeetingStatus.IN_PROGRESS) {
             log.info("[MeetingService] 이미 진행 중인 회의 재입장: meetingId={}", meetingId);
-            return MeetingResponseDto.Start.from(meeting);
+            return transactionTemplate.execute(status -> {
+                saveParticipantIfabsent(meeting, user);
+                return MeetingResponseDto.Start.from(meeting);
+            });
         }
 
+        //트랜잭션 없는 상태에서 외부 API 호출
         String roomName = webRtcClient.createRoom();
-        meeting.start(roomName);
-        saveParticipantIfabsent(meeting, user);
-        log.info("[MeetingService] 회의 시작 완료: meetingId={}, roomName={}",
-                meetingId, roomName);
-        return MeetingResponseDto.Start.from(meeting);
+        //DB 트랜잭션을 열고 상태를 바꿈
+        return transactionTemplate.execute(status -> {
+            Meeting lockedMeeting = getMeetingWithLockOrThrow(meetingId);
+
+            if (lockedMeeting.getStatus() == MeetingStatus.IN_PROGRESS) {
+                saveParticipantIfabsent(lockedMeeting, user);
+                return MeetingResponseDto.Start.from(lockedMeeting);
+            }
+
+            lockedMeeting.start(roomName);
+            saveParticipantIfabsent(lockedMeeting, user);
+            log.info("[MeetingService] 회의 시작 완료(DB 업데이트): meetingId={}, roomName={}", meetingId, roomName);
+            return MeetingResponseDto.Start.from(lockedMeeting);
+        });
 
     }
 
-    @Transactional
     public void endMeeting(Long meetingId, Long currentUserId) {
-        Meeting meeting = getMeetingOrThrow(meetingId);
-        User user = getUserOrThrow(currentUserId);
-        validateTeamMember(meeting.getTeam(), user);
 
-        meeting.end();
+        String roomNameToDelete = transactionTemplate.execute(status -> {
+            Meeting meeting = getMeetingWithLockOrThrow(meetingId);
+            User user = getUserOrThrow(currentUserId);
+            validateTeamMember(meeting.getTeam(), user);
 
-        if(meeting.getRoomName() != null) {
-            webRtcClient.deleteRoom(meeting.getRoomName());
+            if (!meeting.getCreatedBy().getUserId().equals(user.getUserId())) {
+                throw new GeneralException(MeetingErrorCode.NOT_MEETING_CREATOR);
+            }
+
+            meeting.end();
+            log.info("[MeetingService] 회의 종료 완료(DB 업데이트): meetingId={}", meetingId);
+
+            return meeting.getRoomName();
+        });
+
+        if(roomNameToDelete != null) {
+            webRtcClient.deleteRoom(roomNameToDelete);
+            log.info("[MeetingService] Daily.co 방 삭제 완료: roomName={}", roomNameToDelete);
         }
-        log.info("[MeetingService] 회의 종료 완료: meetingId={}", meetingId);
     }
 
     @Transactional
@@ -122,6 +145,7 @@ public class MeetingService {
     }
 
     //웹훅 수신: 녹음본 S3 업로드 완료 시 URL 갱신
+    @Transactional
     public void updateRecordingUrl(String roomName, String recordingUrl) {
         Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
         meeting.updateRecordingUrl(recordingUrl);
@@ -131,7 +155,7 @@ public class MeetingService {
 
     @Transactional
     public void triggerSummary(Long meetingId, Long currentUserId) {
-        Meeting meeting = getMeetingOrThrow(meetingId);
+        Meeting meeting = getMeetingWithLockOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
 
