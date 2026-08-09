@@ -32,11 +32,25 @@ public class Project extends BaseEntity {
     @JoinColumn(name = "createdBy", nullable = false)
     private User createdBy;
 
+    public void updateProjectInfo(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
     @Builder
     public Project(Organization organization, String name, String description, User createdBy) {
         this.organization = organization;
         this.name = name;
         this.description = description;
         this.createdBy = createdBy;
+    }
+
+    public static Project create(String name, String description, Organization organization, User createdBy) {
+        return Project.builder()
+                .name(name)
+                .description(description)
+                .organization(organization)
+                .createdBy(createdBy)
+                .build();
     }
 }
