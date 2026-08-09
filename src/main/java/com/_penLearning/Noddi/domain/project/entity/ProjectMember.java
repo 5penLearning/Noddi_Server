@@ -11,7 +11,9 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "ProjectMember")
+@Table(name = "ProjectMember", uniqueConstraints = {
+@UniqueConstraint(name = "UK_PROJECT_USER", columnNames = {"projectId", "userId"})
+})
 public class ProjectMember extends BaseEntity {
 
     @Id
