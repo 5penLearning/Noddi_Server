@@ -94,21 +94,31 @@ public class MeetingService {
 
         //트랜잭션 없는 상태에서 외부 API 호출
         String roomName = webRtcClient.createRoom();
+        log.info("[MeetingService] Daily.co 방 생성 완료: meetingId={}, roomName={}", meetingId, roomName);
         //DB 트랜잭션을 열고 상태를 바꿈
-        return transactionTemplate.execute(status -> {
-            Meeting lockedMeeting = getMeetingWithLockOrThrow(meetingId);
+        try {
+            return transactionTemplate.execute(status -> {
+                Meeting lockedMeeting = getMeetingWithLockOrThrow(meetingId);
 
-            if (lockedMeeting.getStatus() == MeetingStatus.IN_PROGRESS) {
+                if (lockedMeeting.getStatus() == MeetingStatus.IN_PROGRESS) {
+                    saveParticipantIfabsent(lockedMeeting, user);
+                    return MeetingResponseDto.Start.from(lockedMeeting);
+                }
+
+                lockedMeeting.start(roomName);
                 saveParticipantIfabsent(lockedMeeting, user);
+                log.info("[MeetingService] 회의 시작 완료(DB 업데이트): meetingId={}, roomName={}", meetingId, roomName);
                 return MeetingResponseDto.Start.from(lockedMeeting);
+            });
+        }catch (Exception e) {
+            log.error("[MeetingService] DB 상태 변경 실패로 인해 Daily.co 방 보상 삭제(롤백) 진행: roomName={}", roomName, e);
+            try {
+                webRtcClient.deleteRoom(roomName);
+            } catch (Exception ex) {
+                log.error("[MeetingService] Daily.co 보상 삭제 실패 (수동 확인 필요): roomName={}", roomName, ex);
             }
-
-            lockedMeeting.start(roomName);
-            saveParticipantIfabsent(lockedMeeting, user);
-            log.info("[MeetingService] 회의 시작 완료(DB 업데이트): meetingId={}, roomName={}", meetingId, roomName);
-            return MeetingResponseDto.Start.from(lockedMeeting);
-        });
-
+            throw e;
+        }
     }
 
     public void endMeeting(Long meetingId, Long currentUserId) {
