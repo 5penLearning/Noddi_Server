@@ -11,5 +11,5 @@ public interface WebRtcClient {
      * Daily.co에 방을 삭제합니다. (회의 종료 시 호출)
      * @param roomName 삭제할 방 이름
      */
-    void deletRoom(String roomName);
+    void deleteRoom(String roomName);
 }

@@ -57,7 +57,7 @@ public class DailyCoWebRtcClient implements WebRtcClient{
     }
 
     @Override
-    public void deletRoom(String roomName) {
+    public void deleteRoom(String roomName) {
         restClient.delete()
                 .uri("/rooms/{roomName}", roomName)
                 .retrieve()

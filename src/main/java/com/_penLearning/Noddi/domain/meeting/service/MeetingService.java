@@ -106,7 +106,7 @@ public class MeetingService {
         meeting.end();
 
         if(meeting.getRoomName() != null) {
-            webRtcClient.deletRoom(meeting.getRoomName());
+            webRtcClient.deleteRoom(meeting.getRoomName());
         }
         log.info("[MeetingService] 회의 종료 완료: meetingId={}", meetingId);
     }
