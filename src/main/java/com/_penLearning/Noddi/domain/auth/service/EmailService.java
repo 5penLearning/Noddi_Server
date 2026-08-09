@@ -2,17 +2,15 @@ package com._penLearning.Noddi.domain.auth.service;
 
 import com._penLearning.Noddi.domain.auth.code.AuthErrorCode;
 import com._penLearning.Noddi.domain.auth.dto.AuthRequestDto;
+import com._penLearning.Noddi.domain.organization.code.OrganizationErrorCode;
 import com._penLearning.Noddi.domain.organization.entity.Organization;
 import com._penLearning.Noddi.domain.organization.repository.OrganizationRepository;
+import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
+import com._penLearning.Noddi.global.util.EmailAsyncSender;
 import com._penLearning.Noddi.global.util.RedisUtil;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,9 +21,10 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class EmailService {
-    private final JavaMailSender mailSender;
     private final RedisUtil redisUtil;
     private final OrganizationRepository organizationRepository;
+    private final UserRepository userRepository;
+    private final EmailAsyncSender emailAsyncSender;
 
     private static final String CODE_PREFIX = "EMAIL_CODE:";
     private static final String VERIFIED_PREFIX = "EMAIL_VERIFIED:";
@@ -37,9 +36,14 @@ public class EmailService {
     // 인증번호 발송
     public void sendVerificationCode(AuthRequestDto.EmailSendRequestDto request) {
 
+        // 이미 가입 된 이메일에 전송 방지
+        if(userRepository.existsByEmail(request.getEmail())){
+            throw new GeneralException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
+
         // 요청된 조직이 존재하는지 확인하고, 입력한 이메일의 도메인이 해당 조직의 도메인과 일치하는지 검증
         Organization organization = organizationRepository.findById(request.getOrganizationId())
-                .orElseThrow(() -> new IllegalArgumentException("조직이 존재하지 않습니다.")); //OrganizationErrorCode 작성 시 교체 예정
+                .orElseThrow(() -> new GeneralException(OrganizationErrorCode.ORGANIZATION_NOT_FOUND));
 
         validateEmailDomain(request.getEmail(), organization.getEmailDomain());
 
@@ -53,7 +57,7 @@ public class EmailService {
         String authCode = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
 
         // 메일 발송 (발송 중 에러 발생 시 여기서 예외가 터지므로 이래 Redis 로직은 실행되지 않음)
-        sendMail(request.getEmail(), authCode);
+        emailAsyncSender.sendMailAsync(request.getEmail(), authCode);
 
         // 이메일 발송이 "성공적으로 끝난 경우에만" Redis에 상태를 저장
         String redisKey = CODE_PREFIX + request.getOrganizationId() + ":" + request.getEmail();
@@ -105,30 +109,6 @@ public class EmailService {
         String emailDomain = email.substring(email.indexOf("@") + 1);
         if (!emailDomain.equalsIgnoreCase(allowedDomain)) {
             throw new GeneralException(AuthErrorCode.INVALID_EMAIL_DOMAIN); // "해당 조직의 이메일 도메인과 일치하지 않습니다."
-        }
-    }
-
-    // 실제 메일 발송 로직
-    private void sendMail(String toEmail, String authCode) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(toEmail);
-            helper.setSubject("[Noddi] 이메일 인증번호 안내");
-
-            String content = "<h3>Noddi 서비스 이용을 위한 인증번호입니다.</h3>" +
-                    "<br>인증번호: <b>" + authCode + "</b><br>" +
-                    "<p>5분 이내에 입력해 주세요.</p>";
-
-            helper.setText(content, true);
-
-            mailSender.send(message);
-
-        } catch (MessagingException | MailException e) {
-            // MimeMessage 조립 오류(MessagingException)와 SMTP 통신 오류(MailException) 모두 캐치
-            log.error("[Email Error] 메일 발송 실패: {}", e.getMessage());
-            throw new GeneralException(AuthErrorCode.MAIL_SEND_FAILED);
         }
     }
 }

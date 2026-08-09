@@ -4,6 +4,7 @@ import com._penLearning.Noddi.domain.auth.code.AuthErrorCode;
 import com._penLearning.Noddi.domain.auth.dto.AuthRequestDto;
 import com._penLearning.Noddi.domain.auth.dto.AuthResponseDto;
 import com._penLearning.Noddi.domain.auth.dto.TokenResponseDto;
+import com._penLearning.Noddi.domain.organization.code.OrganizationErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.domain.organization.entity.Organization;
@@ -44,7 +45,7 @@ public class AuthService {
 
         // 3. 조직 조회
         Organization organization = organizationRepository.findById(request.getOrganizationId())
-                .orElseThrow(() -> new IllegalArgumentException("조직이 존재하지 않습니다.")); //OrganizationErrorCode 작성 시 교체 예정
+                .orElseThrow(() -> new GeneralException(OrganizationErrorCode.ORGANIZATION_NOT_FOUND));
 
         // 4. 비밀번호 암호화 및 User 생성
         String encodedPassword = passwordEncoder.encode(request.getPassword());

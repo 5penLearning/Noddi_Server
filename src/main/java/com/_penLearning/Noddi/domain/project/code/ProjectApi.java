@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -51,8 +52,8 @@ public interface ProjectApi {
     })
     ApiResponse<Void> updateProject(
             @PathVariable Long projectId,
-            @Parameter(hidden = true) @AuthenticationPrincipal AuthMember authMember,
-            @RequestBody ProjectRequestDto.Update request
+            @Valid @RequestBody ProjectRequestDto.Update request,
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthMember authMember
     );
 
     @Operation(summary = "프로젝트 삭제", description = "프로젝트 리더가 프로젝트를 삭제합니다. 관련된 멤버 정보도 함께 삭제됩니다.")
