@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.project.code.ProjectMemberApi;
 import com._penLearning.Noddi.domain.project.dto.ProjectMemberRequestDto;
 import com._penLearning.Noddi.domain.project.dto.ProjectMemberResponseDto;
 import com._penLearning.Noddi.domain.project.service.ProjectMemberService;
+import com._penLearning.Noddi.domain.project.service.ProjectService;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 public class ProjectMemberController implements ProjectMemberApi {
 
     private final ProjectMemberService projectMemberService;
+    private final ProjectService projectService;
 
     @Override
     @PostMapping("/{projectId}/members/invite")
@@ -60,11 +62,10 @@ public class ProjectMemberController implements ProjectMemberApi {
             @PathVariable Long projectId,
             @AuthenticationPrincipal AuthMember authMember) {
 
-
-        List<ProjectMemberResponseDto.MemberInfo> response = projectMemberService.getMembers(projectId, authMember.getUserId()).stream()
-                .map(ProjectMemberResponseDto.MemberInfo::from)
-                .toList();
-
+        // 1. 서비스 로직 호출 (결과물은 DTO 리스트로 받음)
+        List<ProjectMemberResponseDto.MemberInfo> response =
+                projectMemberService.getMembers(projectId, authMember.getUserId());
+        // 2. 일관된 응답 포맷(ApiResponse)으로 감싸서 리턴
         return ApiResponse.onSuccess("프로젝트 멤버 목록 조회에 성공했습니다.", response);
     }
 

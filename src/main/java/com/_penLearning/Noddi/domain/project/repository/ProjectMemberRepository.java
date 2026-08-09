@@ -7,6 +7,7 @@ import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.entity.ProjectRole;
 import com._penLearning.Noddi.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -32,4 +33,8 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
     long countByProjectAndRoleAndStatus(Project project, ProjectRole role, JoinStatus status);
 
     void deleteAllByProject(Project project);
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM ProjectMember pm WHERE pm.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }
