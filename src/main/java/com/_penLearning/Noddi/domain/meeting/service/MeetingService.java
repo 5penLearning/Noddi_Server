@@ -80,6 +80,8 @@ public class MeetingService {
     }
 
     public MeetingResponseDto.Start startMeeting(Long meetingId, Long currentUserId) {
+
+        transactionTemplate.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         Meeting meeting = getMeetingOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
@@ -122,6 +124,8 @@ public class MeetingService {
     }
 
     public void endMeeting(Long meetingId, Long currentUserId) {
+        //쓰기 전용 트랜잭션 열기
+        transactionTemplate.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         String roomNameToDelete = transactionTemplate.execute(status -> {
             Meeting meeting = getMeetingWithLockOrThrow(meetingId);

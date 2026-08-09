@@ -44,4 +44,4 @@ daily:
   api:
     key: ${DAILY_API_KEY}
   webhook:
-    secret: TEMPKEYTEMPKEYTEMPKEYTEMPKEY1234567890abcdefghijklmnopqrstuvw1234 #환경변수 설정 필요
+    secret: "noddi-secret-123" # Base64 아니고 평문, 환경변수 설정 필요

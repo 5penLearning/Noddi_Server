@@ -34,13 +34,14 @@ public class MeetingWebHookController {
     @PostMapping("/daily")
     public ResponseEntity<Void> handleDailyWebhook(
             @RequestHeader(value = "X-Webhook-Signature", required = false) String signature,
+            @RequestHeader(value = "X-Webhook-Timestamp", required = false) String timestamp,
             @RequestBody String rawPayload
     ) {
         try {
             // 시크릿 키가 세팅되어 있다면 무조건 검증을 수행
             if (webhookSecret != null && !webhookSecret.isEmpty()) {
                 // 서명이 아예 안 왔거나, 우리가 계산한 해시값과 다르면 해커의 공격으로 간주
-                if (signature == null || !isValidSignature(rawPayload, signature)) {
+                if (signature == null || !isValidSignature(timestamp, rawPayload, signature)) {
                     log.warn("[Daily.co Webhook] 서명 검증 실패. 비정상적인 접근입니다.");
                     // 401 Unauthorized 에러를 반환
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -51,19 +52,20 @@ public class MeetingWebHookController {
 
             log.info("[Daily.co Webhook] 이벤트 수신: action={}, roomName={}", payload.getAction(), payload.getRoomName());
 
-            // [3] 기존 분기 처리 로직
-            switch (payload.getAction()) {
-                case "recording.ready" -> {
-                    String recordingUrl = buildS3Url(payload.getS3Bucket(), payload.getS3Key());
-                    log.info("[Daily.co Webhook] 녹음본 준비 완료: url={}", recordingUrl);
-                    meetingService.updateRecordingUrl(payload.getRoomName(), recordingUrl);
+            if (payload.getAction() != null) {
+                switch (payload.getAction()) {
+                    case "recording.ready-to-download" -> {
+                        String recordingUrl = buildS3Url(payload.getS3Bucket(), payload.getS3Key());
+                        log.info("[Daily.co Webhook] 녹음본 준비 완료: url={}", recordingUrl);
+                        meetingService.updateRecordingUrl(payload.getRoomName(), recordingUrl);
+                    }
+                    case "meeting.ended" -> {
+                        log.info("[Daily.co Webhook] 회의 자동 종료 처리: roomName={}", payload.getRoomName());
+                        meetingService.endMeetingByRoomName(payload.getRoomName());
+                    }
+                    default ->
+                            log.debug("[Daily.co Webhook] 처리하지 않는 이벤트: {}", payload.getAction());
                 }
-                case "meeting.ended" -> {
-                    log.info("[Daily.co Webhook] 회의 자동 종료 처리: roomName={}", payload.getRoomName());
-                    meetingService.endMeetingByRoomName(payload.getRoomName());
-                }
-                default ->
-                        log.debug("[Daily.co Webhook] 처리하지 않는 이벤트: {}", payload.getAction());
             }
             return ResponseEntity.ok().build();
 
@@ -74,14 +76,15 @@ public class MeetingWebHookController {
     }
 
     // HMAC-SHA256 해시 검증 로직
-    private boolean isValidSignature(String payload, String providedSignature) throws Exception {
+    private boolean isValidSignature(String timestamp, String payload, String providedSignature)
+            throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
+
         SecretKeySpec secretKey = new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         mac.init(secretKey);
 
-        // 원본 데이터(String)를 바이트 단위로 쪼개어 해시 암호화를 진행
-        byte[] computedHash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-        // 암호화된 바이트 배열을 사람이 읽을 수 있는 문자인 Base64로 인코딩
+        String messageToSign = timestamp + "." + payload;
+        byte[] computedHash = mac.doFinal(messageToSign.getBytes(StandardCharsets.UTF_8));
         String computedSignature = Base64.getEncoder().encodeToString(computedHash);
 
         // 우리가 직접 계산한 결과와, Daily.co가 헤더로 보내준 서명이 똑같은지 비교
