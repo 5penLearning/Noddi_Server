@@ -68,7 +68,7 @@ public class DailyCoWebRtcClient implements WebRtcClient{
                     .body(DailyAccessLinkResponseDto.class);
 
             if (response != null && response.getDownloadLink() != null) {
-                return (String) response.getDownloadLink();
+                return response.getDownloadLink();
             }
             throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
         } catch (Exception e) {
