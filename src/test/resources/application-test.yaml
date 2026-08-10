@@ -33,3 +33,5 @@ daily:
     key: test-daily-key
   webhook:
     secret: test-webhook-secret
+openai:
+  api-key: ${OPENAI_API_KEY:test-openai-key}
