@@ -52,3 +52,6 @@ daily:
     key: ${DAILY_API_KEY}
   webhook:
     secret: ${WEBHOOK_SECRET} # Base64 아니고 평문, 환경변수 설정 필요
+
+springdoc:
+  use-fqn: true #스웨거 클래스명 충돌 방지
