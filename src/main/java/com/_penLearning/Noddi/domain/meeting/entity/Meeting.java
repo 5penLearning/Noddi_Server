@@ -49,8 +49,6 @@ public class Meeting extends BaseEntity {
     //webRTC 방 ID LAZY 방식으로 주입(회의 시작 버튼을 눌러야 회의가 열림)
     private String roomName;
     private String recordingId;
-    @Lob
-    private String transcriptText;
 
     @Builder
     public Meeting(Team team, String title, User createdBy) {
@@ -98,7 +96,6 @@ public class Meeting extends BaseEntity {
     }
     public void completeAiProcessing(String transcriptText) {
         this.aiStatus = AiStatus.COMPLETED;
-        this.transcriptText = transcriptText;
     }
 
     public void failAiProcessing() {
