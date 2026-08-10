@@ -34,6 +34,12 @@ spring:
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
+scheduler:
+  team-invite:
+    cron: "0 0 * * * *"
+    zone: Asia/Seoul
+    valid-days: 7
+
 jwt:
   secret: TEMPKEYTEMPKEYTEMPKEYTEMPKEY1234567890abcdefghijklmnopqrstuvw1234
   access-token-expiration: 3600000
