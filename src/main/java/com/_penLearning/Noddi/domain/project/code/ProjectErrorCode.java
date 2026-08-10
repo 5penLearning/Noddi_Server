@@ -12,7 +12,7 @@ public enum ProjectErrorCode implements BaseErrorCode {
     // 400 BAD_REQUEST
     INVALID_PROJECT_REQUEST(HttpStatus.BAD_REQUEST, "PROJECT400_1", "잘못된 프로젝트 요청입니다."),
     NOT_SAME_ORGANIZATION(HttpStatus.BAD_REQUEST, "PROJECT400_2", "다른 조직 멤버에게는 초대를 전송할 수 없습니다."),
-    CANNOT_REMOVE_LAST_LEADER(HttpStatus.BAD_REQUEST, "PROJECT400_3", "프로젝트의 마지막 멤버는 탈퇴하거나 권한응 강등할 수 없습니다."),
+    CANNOT_REMOVE_LAST_LEADER(HttpStatus.BAD_REQUEST, "PROJECT400_3", "프로젝트의 마지막 리더는 탈퇴하거나 권한을 강등할 수 없습니다."),
 
     // 403 FORBIDDEN (권한 없음)
     NOT_PROJECT_LEADER(HttpStatus.FORBIDDEN, "PROJECT403_1", "프로젝트 관리자(LEADER) 권한이 필요합니다."),

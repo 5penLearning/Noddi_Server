@@ -26,14 +26,22 @@ public class Team extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "createdBy", nullable = false)
     private User createdBy;
 
+    public void updateTeamInfo(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
+
     @Builder
-    public Team(Project project, String name, User createdBy) {
+    public Team(Project project, String name, String description, User createdBy) {
         this.project = project;
         this.name = name;
+        this.description = description;
         this.createdBy = createdBy;
     }
 }

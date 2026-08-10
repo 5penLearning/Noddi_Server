@@ -9,11 +9,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface TeamRepository extends JpaRepository<Team, Long> {
-    List<Team> findByProject_ProjectId(Long projectId);
 
-    // 같은 조직 내 팀 전체 조회 (타 팀 Q&A 대상 리스트용)
-    @Query("SELECT t FROM Team t WHERE t.project.organization.organizationId = :organizationId")
-    List<Team> findAllByOrganizationId(@Param("organizationId") Long organizationId);
+    // 특정 프로젝트에 속한 모든 팀 조회
+    @Query("select t from Team t join fetch t.createdBy where t.project = :project")
+    List<Team> findAllByProject(@Param("project") Project project);
 
     void deleteAllByProject(Project project);
 }
