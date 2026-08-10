@@ -26,7 +26,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-@Profile({"local", "dev", "default"}) // 👈 default 프로필(로컬 기본 실행)에서도 작동하도록 추가!
+@Profile({"local", "dev", "default"})
 @RequiredArgsConstructor
 public class TestDataInitializer implements CommandLineRunner {
 
@@ -118,7 +118,7 @@ public class TestDataInitializer implements CommandLineRunner {
             log.info("[TestDataInitializer] 로컬/개발용 더미 데이터 생성 완료!");
             log.info(" - 공통 비밀번호: test");
             log.info(" - 1번 팀(teamId: {}) 팀원 계정 목록:", testTeam.getTeamId());
-            log.info("   1) test1@gmail.com (userId: {}, LEADER)", user1.getUserId());
+            log.info("   1) test1@gmail.com (userId: {}, OWNER)", user1.getUserId());
             log.info("   2) test2@gmail.com (userId: {}, MEMBER)", user2.getUserId());
             log.info("   3) test3@gmail.com (userId: {}, MEMBER)", user3.getUserId());
         }
