@@ -1,0 +1,40 @@
+name: Noddi Server CI/CD (Develop Auto Deploy)
+
+on:
+  push:
+    branches: [ "develop", "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 21 세팅
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Gradle 실행 권한 부여
+        run: chmod +x gradlew
+
+      - name: Gradle 프로젝트 빌드 (테스트 제외)
+        run: ./gradlew build -x test
+
+      - name: EC2 서버로 JAR 파일 및 배포 실행
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/Noddi_Server || exit 1
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+            ./gradlew build -x test
+            sudo systemctl restart noddi.service
+            echo "[GitHub Actions] EC2 자동 배포 및 noddi.service 재시작 완료!"
