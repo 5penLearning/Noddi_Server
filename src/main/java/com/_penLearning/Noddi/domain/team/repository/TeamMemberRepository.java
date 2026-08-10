@@ -1,10 +1,12 @@
 package com._penLearning.Noddi.domain.team.repository;
 
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
 import com._penLearning.Noddi.domain.team.entity.TeamRole;
 import com._penLearning.Noddi.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -32,4 +34,8 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     // 팀 내 특정 권한(LEADER)을 가진 멤버 수 카운트 (마지막 리더 검증용)
     long countByTeamAndRole(Team team, TeamRole role);
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM TeamMember tm WHERE tm.team.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }

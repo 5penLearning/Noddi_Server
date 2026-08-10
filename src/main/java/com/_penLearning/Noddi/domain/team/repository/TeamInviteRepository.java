@@ -1,5 +1,6 @@
 package com._penLearning.Noddi.domain.team.repository;
 
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.InviteStatus;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.entity.TeamInvite;
@@ -51,4 +52,8 @@ public interface TeamInviteRepository extends JpaRepository<TeamInvite, Long> {
 
     // 팀 삭제 전 연관된 초대장 일괄 삭제용
     void deleteAllByTeam(Team team);
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM TeamInvite ti WHERE ti.team.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }

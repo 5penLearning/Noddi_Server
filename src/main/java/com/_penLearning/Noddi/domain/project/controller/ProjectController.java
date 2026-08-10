@@ -45,7 +45,7 @@ public class ProjectController implements ProjectApi {
             @PathVariable Long projectId,
             @Valid @RequestBody ProjectRequestDto.Update request,
             @AuthenticationPrincipal AuthMember authMember){
-            projectService.updateProject(authMember.getUserId(), projectId, request);
+            projectService.updateProject(projectId, authMember.getUserId(), request);
 
             return ApiResponse.onSuccess("프로젝트 정보 수정을 성공했습니다.");
     }

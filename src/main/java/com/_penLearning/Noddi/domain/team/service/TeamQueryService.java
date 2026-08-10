@@ -1,14 +1,12 @@
 package com._penLearning.Noddi.domain.team.service;
 
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
-import com._penLearning.Noddi.domain.project.entity.JoinStatus;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.dto.TeamResponseDto;
-import com._penLearning.Noddi.domain.team.entity.InviteStatus;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
 import com._penLearning.Noddi.domain.team.entity.TeamRole;
@@ -27,7 +25,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class TeamQueryService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
@@ -75,7 +73,7 @@ public class TeamQueryService {
         User user = getUserOrThrow(userId);
 
         // PENDING 상태인 초대장만, Team 정보와 함께 페치 조인으로 가져옴
-        return teamInviteRepository.findByInviteeAndStatusWithTeam(user, InviteStatus.PENDING).stream()
+        return teamInviteRepository.findByInviteeAndStatusWithTeam(user, com._penLearning.Noddi.domain.team.entity.InviteStatus.PENDING).stream()
                 .map(TeamResponseDto.InvitationInfo::from)
                 .toList();
     }
@@ -83,12 +81,8 @@ public class TeamQueryService {
     // --- 내부 검증 헬퍼 메서드 ---
 
     private void validateProjectMember(Project project, User user) {
-        ProjectMember projectMember = projectMemberRepository.findByProjectAndUser(project, user)
+        projectMemberRepository.findByProjectAndUser(project, user)
                 .orElseThrow(() -> new GeneralException(TeamErrorCode.NOT_PROJECT_MEMBER));
-
-        if (projectMember.getStatus() != JoinStatus.JOINED) {
-            throw new GeneralException(TeamErrorCode.NOT_PROJECT_MEMBER);
-        }
     }
 
     private void validateTeamLeader(Team team, User user) {
@@ -101,16 +95,6 @@ public class TeamQueryService {
 
         if (teamMember.getRole() != TeamRole.LEADER) {
             throw new GeneralException(TeamErrorCode.NOT_TEAM_LEADER);
-        }
-    }
-
-    // 마지막 리더인지 검증하는 헬퍼 메서드
-    private void validateNotLastLeader(Team team, TeamMember targetMember) {
-        if (targetMember.getRole() == TeamRole.LEADER) {
-            long leaderCount = teamMemberRepository.countByTeamAndRole(team, TeamRole.LEADER);
-            if (leaderCount <= 1) {
-                throw new IllegalArgumentException("팀의 마지막 리더는 탈퇴하거나 권한을 강등할 수 없습니다.");
-            }
         }
     }
 

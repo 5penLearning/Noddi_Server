@@ -22,6 +22,7 @@ public enum TeamErrorCode implements BaseErrorCode {
     // 404 NOT_FOUND (조회 실패)
     TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, "TEAM404_1", "팀을 찾을 수 없습니다."),
     INVITE_NOT_FOUND(HttpStatus.NOT_FOUND, "TEAM404_2", "초대장을 찾을 수 없습니다."),
+    TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TEAM404_3", "해당 팀의 멤버가 아닙니다."),
 
     // 409 CONFLICT (중복 방지)
     ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT, "TEAM409_1", "이미 해당 팀에 가입된 유저입니다."),

@@ -30,12 +30,12 @@ public interface ProjectMemberApi {
 
     @Operation(summary = "프로젝트 초대 수락/거절", description = "받은 초대에 대해 수락(true) 또는 거절(false)을 처리합니다.")
     ApiResponse<Void> respondToInvitation(
-            @PathVariable Long projectId,
+            @PathVariable Long inviteId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthMember authMember,
             @RequestBody ProjectMemberRequestDto.Respond request
     );
 
-    @Operation(summary = "프로젝트 정식 멤버 조회", description = "해당 프로젝트에 가입 완료된(JOINED) 멤버 목록을 조회합니다.")
+    @Operation(summary = "프로젝트 멤버 조회", description = "해당 프로젝트에 가입된 멤버 목록을 조회합니다.")
     ApiResponse<List<ProjectMemberResponseDto.MemberInfo>> getMembers(
             @PathVariable Long projectId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthMember authMember
