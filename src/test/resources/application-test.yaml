@@ -1,6 +1,8 @@
 spring:
+  application:
+    name: Noddi-Test-H2
   datasource:
-    url: jdbc:h2:mem:noddi;MODE=MySQL;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -8,10 +10,26 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   mail:
-    username: test@example.com
-    password: test-password
+    host: smtp.gmail.com
+    port: 587
+    username: test@gmail.com
+    password: testpassword
+
+jwt:
+  secret: testsecretkeytestsecretkeytestsecretkey1234567890abcdefghijklmnopqrst
+  access-token-expiration: 3600000
+
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:3000
 
 daily:
   api:
-    key: test-key
+    key: test-daily-key
+  webhook:
+    secret: test-webhook-secret
