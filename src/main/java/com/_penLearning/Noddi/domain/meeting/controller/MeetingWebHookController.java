@@ -50,21 +50,25 @@ public class MeetingWebHookController {
 
             DailyWebhookPayloadDto payload = objectMapper.readValue(rawPayload, DailyWebhookPayloadDto.class);
 
-            log.info("[Daily.co Webhook] 이벤트 수신: action={}, roomName={}", payload.getAction(), payload.getRoomName());
+            log.info("[Daily.co Webhook] 이벤트 수신: action={}, roomName={}", payload.getType(), payload.getRoomName());
 
-            if (payload.getAction() != null) {
-                switch (payload.getAction()) {
+            if (payload.getType() != null) {
+                switch (payload.getType()) {
                     case "recording.ready-to-download" -> {
-                        String recordingUrl = buildS3Url(payload.getS3Bucket(), payload.getS3Key());
-                        log.info("[Daily.co Webhook] 녹음본 준비 완료: url={}", recordingUrl);
-                        meetingService.updateRecordingUrl(payload.getRoomName(), recordingUrl);
+                        String roomName = payload.getRoomName();
+                        String recordingId = payload.getRecordingId();
+                        log.info("[MeetingWebHook] 녹음 완료 알림 수신: roomName={}, recordingId={}", roomName, recordingId);
+
+                        if (roomName != null && recordingId != null) {
+                            meetingService.updateRecordingId(roomName, recordingId);
+                        }
                     }
                     case "meeting.ended" -> {
                         log.info("[Daily.co Webhook] 회의 자동 종료 처리: roomName={}", payload.getRoomName());
                         meetingService.endMeetingByRoomName(payload.getRoomName());
                     }
                     default ->
-                            log.debug("[Daily.co Webhook] 처리하지 않는 이벤트: {}", payload.getAction());
+                            log.debug("[Daily.co Webhook] 처리하지 않는 이벤트: {}", payload.getType());
                 }
             }
             return ResponseEntity.ok().build();

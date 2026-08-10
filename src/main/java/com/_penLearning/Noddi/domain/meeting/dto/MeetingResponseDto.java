@@ -81,4 +81,10 @@ public class MeetingResponseDto {
                     .build();
         }
     }
+
+    @Getter
+    @AllArgsConstructor
+    public static class RecordingUrlDto {
+        private String url;
+    }
 }

@@ -29,6 +29,15 @@ public class MeetingController implements MeetingApi {
     }
 
     @Override
+    @GetMapping("/{meetingId}/recording-url")
+    public ApiResponse<MeetingResponseDto.RecordingUrlDto> getRecordingUrl(
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        MeetingResponseDto.RecordingUrlDto response = meetingService.getRecordingUrl(meetingId, authMember.getUserId());
+        return ApiResponse.onSuccess("녹음 다운로드 링크 조회가 완료되었습니다.", response);
+    }
+
+    @Override
     @GetMapping
     public ApiResponse<List<MeetingResponseDto.Info>> getMeetingsByTeam(
             @RequestParam Long teamId, @AuthenticationPrincipal AuthMember authMember) {

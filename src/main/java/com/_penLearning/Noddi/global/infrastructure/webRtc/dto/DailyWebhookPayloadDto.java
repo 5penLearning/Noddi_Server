@@ -13,8 +13,6 @@ public class DailyWebhookPayloadDto {
     @JsonProperty("type")
     private String type;
 
-    private String action; // 하위 호환성용
-
     // 세부 데이터는 "payload" 중첩 객체 안에 있음
     @JsonProperty("payload")
     private EventDetail payload;
@@ -28,6 +26,9 @@ public class DailyWebhookPayloadDto {
         @JsonProperty("room_name")
         private String roomName;
 
+        @JsonProperty("recording_id")
+        private String recordingId;
+
         @JsonProperty("s3_key")
         private String s3Key;
 
@@ -40,12 +41,18 @@ public class DailyWebhookPayloadDto {
     }
 
     // 💡 기존 컨트롤러 코드와의 호환성을 위한 헬퍼 메서드들
-    public String getAction() {
-        return type != null ? type : action;
+    public String getType() {
+        return type;
     }
+
+
 
     public String getRoomName() {
         return payload != null ? payload.getRoomName() : null;
+    }
+
+    public String getRecordingId() {
+        return payload != null ? payload.getRecordingId() : null;
     }
 
     public String getS3Bucket() {

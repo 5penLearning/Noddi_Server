@@ -48,7 +48,7 @@ public class Meeting extends BaseEntity {
 
     //webRTC 방 ID LAZY 방식으로 주입(회의 시작 버튼을 눌러야 회의가 열림)
     private String roomName;
-    private String recordingUrl;
+    private String recordingId;
     @Lob
     private String transcriptText;
 
@@ -79,19 +79,19 @@ public class Meeting extends BaseEntity {
     }
 
     /**
-     * 3. 녹음본 URL 업데이트
-     * - 시점: WebRTC Webhook(room.empty 등)으로 S3 업로드 완료 알림 수신 시
+     * Daily.co 녹음 ID 업데이트
      */
-    public void updateRecordingUrl(String recordingUrl) {
-        this.recordingUrl = recordingUrl;
+    public void updateRecordingId(String recordingId) {
+        this.recordingId = recordingId;
     }
+
 
     //Ai 요약 관련 메소드
     public void startAiProcessing() {
         if (this.status != MeetingStatus.ENDED) {
             throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_SUMMARY);
         }
-        if (this.recordingUrl == null) {
+        if (this.recordingId == null) {
             throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
         }
         this.aiStatus = AiStatus.PROCESSING;
