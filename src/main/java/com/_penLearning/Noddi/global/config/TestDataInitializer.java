@@ -23,7 +23,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-@Profile({"local", "dev", "default"}) // 👈 default 프로필(로컬 기본 실행)에서도 작동하도록 추가!
+@Profile({"local", "dev", "default"})
 @RequiredArgsConstructor
 public class TestDataInitializer implements CommandLineRunner {
 
@@ -37,44 +37,16 @@ public class TestDataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (organizationRepository.count() == 0 && userRepository.count() == 0) {
-
-            // 1. 조직 생성
-        // 💡 유저 데이터가 없을 때 더미 생성을 확실히 실행!
         if (userRepository.count() == 0) {
 
             // 1. 조직(Organization) 더미 생성
-            Organization hongik = Organization.builder()
-                    .name("홍익대학교")
-                    .emailDomain("g.hongik.ac.kr")
-                    .build();
-
             Organization testOrg = Organization.builder()
                     .name("테스트 조직(Gmail)")
                     .emailDomain("gmail.com")
                     .build();
 
-            organizationRepository.saveAll(List.of(hongik, testOrg));
+            organizationRepository.save(testOrg);
 
-            String encodedPassword = passwordEncoder.encode("1234");
-
-            User user1 = User.builder()
-                    .name("김철수")
-                    .email("chulsoo@g.hongik.ac.kr")
-                    .password(encodedPassword)
-                    .organization(hongik)
-                    .build();
-
-            User user2 = User.builder()
-                    .name("김영희")
-                    .email("younghee@gmail.com")
-                    .password(encodedPassword)
-                    .organization(testOrg)
-                    .build();
-
-            userRepository.saveAll(List.of(user1, user2));
-
-            log.info("[TestDataInitializer] 초기 테스트 데이터 주입 완료: 조직 2개, 유저 2명");
             // 비밀번호 'test' 암호화
             String encodedPassword = passwordEncoder.encode("test");
 
@@ -121,11 +93,10 @@ public class TestDataInitializer implements CommandLineRunner {
 
             teamRepository.save(testTeam);
 
-            // 5. 1번 팀에 유저 3명 모두 팀원으로 매핑 (TeamMember)
             TeamMember tm1 = TeamMember.builder()
                     .team(testTeam)
                     .user(user1)
-                    .role(TeamRole.OWNER)
+                    .role(TeamRole.LEADER)
                     .build();
 
             TeamMember tm2 = TeamMember.builder()
@@ -145,7 +116,7 @@ public class TestDataInitializer implements CommandLineRunner {
             log.info("[TestDataInitializer] 로컬/개발용 더미 데이터 생성 완료!");
             log.info(" - 공통 비밀번호: test");
             log.info(" - 1번 팀(teamId: {}) 팀원 계정 목록:", testTeam.getTeamId());
-            log.info("   1) test1@gmail.com (userId: {}, LEADER)", user1.getUserId());
+            log.info("   1) test1@gmail.com (userId: {}, OWNER)", user1.getUserId());
             log.info("   2) test2@gmail.com (userId: {}, MEMBER)", user2.getUserId());
             log.info("   3) test3@gmail.com (userId: {}, MEMBER)", user3.getUserId());
         }
