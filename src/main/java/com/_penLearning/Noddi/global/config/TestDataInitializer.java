@@ -37,6 +37,9 @@ public class TestDataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (organizationRepository.count() == 0 && userRepository.count() == 0) {
+
+            // 1. 조직 생성
         // 💡 유저 데이터가 없을 때 더미 생성을 확실히 실행!
         if (userRepository.count() == 0) {
 
@@ -53,6 +56,25 @@ public class TestDataInitializer implements CommandLineRunner {
 
             organizationRepository.saveAll(List.of(hongik, testOrg));
 
+            String encodedPassword = passwordEncoder.encode("1234");
+
+            User user1 = User.builder()
+                    .name("김철수")
+                    .email("chulsoo@g.hongik.ac.kr")
+                    .password(encodedPassword)
+                    .organization(hongik)
+                    .build();
+
+            User user2 = User.builder()
+                    .name("김영희")
+                    .email("younghee@gmail.com")
+                    .password(encodedPassword)
+                    .organization(testOrg)
+                    .build();
+
+            userRepository.saveAll(List.of(user1, user2));
+
+            log.info("[TestDataInitializer] 초기 테스트 데이터 주입 완료: 조직 2개, 유저 2명");
             // 비밀번호 'test' 암호화
             String encodedPassword = passwordEncoder.encode("test");
 
