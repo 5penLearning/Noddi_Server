@@ -1,5 +1,6 @@
 package com._penLearning.Noddi.domain.project.dto;
 
+import com._penLearning.Noddi.domain.project.entity.ProjectInvite;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.entity.ProjectRole;
 import lombok.Builder;
@@ -30,17 +31,23 @@ public class ProjectMemberResponseDto {
     @Getter
     @Builder
     public static class InvitationInfo {
+        private Long inviteId;
         private Long projectId;
         private String projectName;
         private String projectDescription;
-        private ProjectRole offeredRole; // 어떤 권한으로 초대받았는지 명시
+        private Long inviterId;
+        private String inviterName;
+        private ProjectRole offeredRole;
 
-        public static InvitationInfo from(ProjectMember projectMember) {
+        public static InvitationInfo from(ProjectInvite invite) {
             return InvitationInfo.builder()
-                    .projectId(projectMember.getProject().getProjectId())
-                    .projectName(projectMember.getProject().getName()) // N:1 연관관계(Fetch Join)로 가져온 프로젝트 이름
-                    .projectDescription(projectMember.getProject().getDescription())
-                    .offeredRole(projectMember.getRole())
+                    .inviteId(invite.getInviteId())
+                    .projectId(invite.getProject().getProjectId())
+                    .projectName(invite.getProject().getName())
+                    .projectDescription(invite.getProject().getDescription())
+                    .inviterId(invite.getInviter().getUserId())
+                    .inviterName(invite.getInviter().getName())
+                    .offeredRole(ProjectRole.MEMBER)
                     .build();
         }
     }

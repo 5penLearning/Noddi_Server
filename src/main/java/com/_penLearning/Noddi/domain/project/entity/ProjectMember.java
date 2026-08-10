@@ -32,35 +32,19 @@ public class ProjectMember extends BaseEntity {
     @Column(nullable = false)
     private ProjectRole role;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private JoinStatus status; // 상태 필드 추가
-
     @Builder
-    public ProjectMember(Project project, User user, ProjectRole role, JoinStatus status) {
+    public ProjectMember(Project project, User user, ProjectRole role) {
         this.project = project;
         this.user = user;
         this.role = role;
-        this.status = status;
     }
 
-    // 객체 생성 책임을 캡슐화한 정적 팩토리 메서드
-    public static ProjectMember create(Project project, User user, ProjectRole role, JoinStatus status) {
+    public static ProjectMember create(Project project, User user, ProjectRole role) {
         return ProjectMember.builder()
                 .project(project)
                 .user(user)
                 .role(role)
-                .status(status)
                 .build();
-    }
-
-    // 상태 변경 로직 캡슐화
-    public void acceptInvitation() {
-        this.status = JoinStatus.JOINED;
-    }
-
-    public void rejectInvitation() {
-        this.status = JoinStatus.REJECTED;
     }
 
     public void updateRole(ProjectRole newRole) {

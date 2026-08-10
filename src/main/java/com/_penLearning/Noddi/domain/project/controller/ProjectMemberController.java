@@ -5,7 +5,6 @@ import com._penLearning.Noddi.domain.project.code.ProjectMemberApi;
 import com._penLearning.Noddi.domain.project.dto.ProjectMemberRequestDto;
 import com._penLearning.Noddi.domain.project.dto.ProjectMemberResponseDto;
 import com._penLearning.Noddi.domain.project.service.ProjectMemberService;
-import com._penLearning.Noddi.domain.project.service.ProjectService;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ import java.util.List;
 public class ProjectMemberController implements ProjectMemberApi {
 
     private final ProjectMemberService projectMemberService;
-    private final ProjectService projectService;
 
     @Override
     @PostMapping("/{projectId}/members/invite")
@@ -44,13 +42,13 @@ public class ProjectMemberController implements ProjectMemberApi {
     }
 
     @Override
-    @PostMapping("/{projectId}/invitations/respond")
+    @PostMapping("/invitations/{inviteId}/respond")
     public ApiResponse<Void> respondToInvitation(
-            @PathVariable Long projectId,
+            @PathVariable Long inviteId,
             @AuthenticationPrincipal AuthMember authMember,
             @RequestBody @Valid ProjectMemberRequestDto.Respond request) {
 
-        projectMemberService.respondToInvitation(projectId, authMember.getUserId(), request.getIsAccepted());
+        projectMemberService.respondToInvitation(inviteId, authMember.getUserId(), request.getIsAccepted());
         String message = request.getIsAccepted() ? "초대를 수락하여 프로젝트에 가입되었습니다." : "초대를 거절했습니다.";
 
         return ApiResponse.onSuccess(message);

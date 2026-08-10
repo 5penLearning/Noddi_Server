@@ -19,8 +19,8 @@ public class TeamInviteScheduler {
 
     // 매일 자정(00:00:00)에 실행되도록 Cron 표현식 설정
     @Scheduled(
-            cron = "${scheduler.team-invite.cron:0 0 * * * *}",
-            zone = "${scheduler.team-invite.zone:Asia/Seoul}"
+            cron = "${scheduler.invite.cron:0 0 * * * *}",
+            zone = "${scheduler.invite.zone:Asia/Seoul}"
     )    @Transactional
     public void expireOldInvitations() {
         // 기준선: 시스템 현재 시간으로부터 정확히 7일 전

@@ -3,10 +3,10 @@ package com._penLearning.Noddi.domain.project.service;
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.dto.ProjectRequestDto;
 import com._penLearning.Noddi.domain.project.dto.ProjectResponseDto;
-import com._penLearning.Noddi.domain.project.entity.JoinStatus;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.entity.ProjectRole;
+import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
@@ -30,6 +30,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectInviteRepository projectInviteRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final TeamInviteRepository teamInviteRepository;
@@ -57,8 +58,7 @@ public class ProjectService {
         ProjectMember leaderMember = ProjectMember.create(
                 project,
                 user,
-                ProjectRole.LEADER,
-                JoinStatus.JOINED
+                ProjectRole.LEADER
         );
 
         projectMemberRepository.save(leaderMember);
@@ -95,7 +95,11 @@ public class ProjectService {
         // 1. 요청자가 해당 프로젝트의 LEADER인지 검증
         validateProjectLeader(project, requesterId);
 
-        // 2. 연관된 프로젝트 멤버 데이터 단일 쿼리로 벌크 삭제 (팀 도메인 로직 제외)
+        // FK 제약조건을 고려해 팀의 하위 데이터부터 삭제한다.
+        teamInviteRepository.bulkDeleteByProject(project);
+        teamMemberRepository.bulkDeleteByProject(project);
+        teamRepository.bulkDeleteByProject(project);
+        projectInviteRepository.deleteBulkByProject(project);
         projectMemberRepository.bulkDeleteByProject(project);
 
         // 3. 프로젝트 삭제
@@ -109,7 +113,7 @@ public class ProjectService {
         ProjectMember member = projectMemberRepository.findByProjectAndUser(project, user)
                 .orElseThrow(() -> new GeneralException(ProjectErrorCode.PROJECT_MEMBER_NOT_FOUND));
 
-        if (member.getRole() != ProjectRole.LEADER || member.getStatus() != JoinStatus.JOINED) {
+        if (member.getRole() != ProjectRole.LEADER) {
             throw new GeneralException(ProjectErrorCode.NOT_PROJECT_LEADER);
         }
     }

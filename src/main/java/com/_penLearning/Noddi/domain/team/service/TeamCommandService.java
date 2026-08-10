@@ -1,14 +1,12 @@
 package com._penLearning.Noddi.domain.team.service;
 
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
-import com._penLearning.Noddi.domain.project.entity.JoinStatus;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.dto.TeamRequestDto;
-import com._penLearning.Noddi.domain.team.dto.TeamResponseDto;
 import com._penLearning.Noddi.domain.team.entity.*;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
@@ -20,8 +18,6 @@ import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -77,7 +73,7 @@ public class TeamCommandService {
             throw new GeneralException(TeamErrorCode.ALREADY_TEAM_MEMBER);
         }
 
-        if (teamInviteRepository.existsByTeamAndInviteeAndStatus(team, targetUser, InviteStatus.PENDING)) {
+        if (teamInviteRepository.existsByTeamAndInviteeAndStatus(team, targetUser, com._penLearning.Noddi.domain.team.entity.InviteStatus.PENDING)) {
             throw new GeneralException(TeamErrorCode.ALREADY_INVITED);
         }
 
@@ -99,7 +95,7 @@ public class TeamCommandService {
             throw new GeneralException(TeamErrorCode.NOT_INVITEE);
         }
 
-        if (invite.getStatus() != InviteStatus.PENDING) {
+        if (invite.getStatus() != com._penLearning.Noddi.domain.team.entity.InviteStatus.PENDING) {
             throw new GeneralException(TeamErrorCode.INVITE_NOT_PENDING);
         }
 
@@ -172,7 +168,7 @@ public class TeamCommandService {
         validateTeamLeader(team, requester);
 
         TeamMember targetMember = teamMemberRepository.findByTeamAndUser(team, targetUser)
-                .orElseThrow(() -> new GeneralException(TeamErrorCode.TEAM_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(TeamErrorCode.TEAM_MEMBER_NOT_FOUND));
 
         // 자신이 리더인데 MEMBER로 강등하려는 경우 방어
         if (targetMember.getRole() == TeamRole.LEADER && newRole == TeamRole.MEMBER) {
@@ -205,12 +201,8 @@ public class TeamCommandService {
     // --- 내부 검증 헬퍼 메서드 ---
 
     private void validateProjectMember(Project project, User user) {
-        ProjectMember projectMember = projectMemberRepository.findByProjectAndUser(project, user)
+        projectMemberRepository.findByProjectAndUser(project, user)
                 .orElseThrow(() -> new GeneralException(TeamErrorCode.NOT_PROJECT_MEMBER));
-
-        if (projectMember.getStatus() != JoinStatus.JOINED) {
-            throw new GeneralException(TeamErrorCode.NOT_PROJECT_MEMBER);
-        }
     }
 
     private void validateTeamLeader(Team team, User user) {

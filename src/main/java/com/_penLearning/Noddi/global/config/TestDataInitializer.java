@@ -3,6 +3,9 @@ package com._penLearning.Noddi.global.config;
 import com._penLearning.Noddi.domain.organization.entity.Organization;
 import com._penLearning.Noddi.domain.organization.repository.OrganizationRepository;
 import com._penLearning.Noddi.domain.project.entity.Project;
+import com._penLearning.Noddi.domain.project.entity.ProjectMember;
+import com._penLearning.Noddi.domain.project.entity.ProjectRole;
+import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
@@ -30,6 +33,7 @@ public class TestDataInitializer implements CommandLineRunner {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -38,47 +42,13 @@ public class TestDataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         if (organizationRepository.count() == 0 && userRepository.count() == 0) {
-
-            // 1. 조직 생성
-        // 💡 유저 데이터가 없을 때 더미 생성을 확실히 실행!
-        if (userRepository.count() == 0) {
-
-            // 1. 조직(Organization) 더미 생성
-            Organization hongik = Organization.builder()
-                    .name("홍익대학교")
-                    .emailDomain("g.hongik.ac.kr")
-                    .build();
-
             Organization testOrg = Organization.builder()
                     .name("테스트 조직(Gmail)")
                     .emailDomain("gmail.com")
                     .build();
+            organizationRepository.save(testOrg);
 
-            organizationRepository.saveAll(List.of(hongik, testOrg));
-
-            String encodedPassword = passwordEncoder.encode("1234");
-
-            User user1 = User.builder()
-                    .name("김철수")
-                    .email("chulsoo@g.hongik.ac.kr")
-                    .password(encodedPassword)
-                    .organization(hongik)
-                    .build();
-
-            User user2 = User.builder()
-                    .name("김영희")
-                    .email("younghee@gmail.com")
-                    .password(encodedPassword)
-                    .organization(testOrg)
-                    .build();
-
-            userRepository.saveAll(List.of(user1, user2));
-
-            log.info("[TestDataInitializer] 초기 테스트 데이터 주입 완료: 조직 2개, 유저 2명");
-            // 비밀번호 'test' 암호화
             String encodedPassword = passwordEncoder.encode("test");
-
-            // 2. 유저(User) 3명 더미 생성
             User user1 = User.builder()
                     .organization(testOrg)
                     .email("test1@gmail.com")
@@ -102,7 +72,6 @@ public class TestDataInitializer implements CommandLineRunner {
 
             userRepository.saveAll(List.of(user1, user2, user3));
 
-            // 3. 프로젝트(Project) 더미 생성
             Project testProject = Project.builder()
                     .organization(testOrg)
                     .name("Noddi 협업 캡스톤 프로젝트")
@@ -112,7 +81,12 @@ public class TestDataInitializer implements CommandLineRunner {
 
             projectRepository.save(testProject);
 
-            // 4. 팀(Team) 더미 생성 (1번 팀)
+            projectMemberRepository.save(ProjectMember.create(
+                    testProject,
+                    user1,
+                    ProjectRole.LEADER
+            ));
+
             Team testTeam = Team.builder()
                     .project(testProject)
                     .name("Noddi 백엔드 개발팀")
@@ -121,11 +95,10 @@ public class TestDataInitializer implements CommandLineRunner {
 
             teamRepository.save(testTeam);
 
-            // 5. 1번 팀에 유저 3명 모두 팀원으로 매핑 (TeamMember)
             TeamMember tm1 = TeamMember.builder()
                     .team(testTeam)
                     .user(user1)
-                    .role(TeamRole.OWNER)
+                    .role(TeamRole.LEADER)
                     .build();
 
             TeamMember tm2 = TeamMember.builder()

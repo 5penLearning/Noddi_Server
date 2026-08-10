@@ -7,7 +7,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:
@@ -35,7 +35,7 @@ spring:
           timeout: 5000
           writetimeout: 5000
 scheduler:
-  team-invite:
+  invite:
     cron: "0 0 * * * *"
     zone: Asia/Seoul
     valid-days: 7
