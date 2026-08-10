@@ -82,17 +82,22 @@ public class ProjectMemberService {
     }
 
     // 프로젝트 멤버 조회
-    public List<ProjectMember> getMembers(Long projectId, Long requesterId) {
+    public List<ProjectMemberResponseDto.MemberInfo> getMembers(
+            Long projectId, Long requesterId
+    ) {
         Project project = getProjectOrThrow(projectId);
-
-        // 요청자가 해당 프로젝트의 멤버인지 확인 (외부인 차단)
         User requester = getUserOrThrow(requesterId);
 
-        ProjectMember requesterMember = getProjectMemberOrThrow(project, requester);
+        ProjectMember requesterMember =
+                getProjectMemberOrThrow(project, requester);
 
         if (requesterMember.getStatus() != JoinStatus.JOINED) {
             throw new GeneralException(ProjectErrorCode.PROJECT_MEMBER_NOT_FOUND);
-        }        return projectMemberRepository.findJoinedMembersByProject(project);
+        }
+
+        return projectMemberRepository.findJoinedMembersByProject(project).stream()
+                .map(ProjectMemberResponseDto.MemberInfo::from)
+                .toList();
     }
 
     // 멤버 권한 변경 (리더만 가능)

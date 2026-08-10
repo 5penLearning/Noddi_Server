@@ -9,6 +9,8 @@ import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.entity.ProjectRole;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
@@ -30,6 +32,8 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final TeamInviteRepository teamInviteRepository;
+    private final TeamMemberRepository teamMemberRepository;
 
     // 프로젝트 생성
     @Transactional
@@ -88,16 +92,15 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new GeneralException(ProjectErrorCode.PROJECT_NOT_FOUND));
 
-        // 1. 요청자가 해당 프로젝트의 LEADER(관리자)인지 검증
+        // 1. 요청자가 해당 프로젝트의 LEADER인지 검증
         validateProjectLeader(project, requesterId);
-        // 2. 하위 자원인 Team 데이터 먼저 삭제
-        teamRepository.deleteAllByProject(project);
-        // 3. 연관된 프로젝트 멤버 데이터 삭제
-        projectMemberRepository.deleteAllByProject(project);
-        // 4. 프로젝트 삭제
+
+        // 2. 연관된 프로젝트 멤버 데이터 단일 쿼리로 벌크 삭제 (팀 도메인 로직 제외)
+        projectMemberRepository.bulkDeleteByProject(project);
+
+        // 3. 프로젝트 삭제
         projectRepository.delete(project);
     }
-
     // 리더 권한 검증 헬퍼 메서드
     private void validateProjectLeader(Project project, Long userId) {
         User user = userRepository.findById(userId)
