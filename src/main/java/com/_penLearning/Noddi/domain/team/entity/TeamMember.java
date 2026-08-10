@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.team.entity;
 
 import com._penLearning.Noddi.domain.user.entity.User;
+import com._penLearning.Noddi.global.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,9 +14,9 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "TeamMember", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"teamId", "userId"})
+        @UniqueConstraint(name = "UK_TEAM_USER", columnNames = {"teamId", "userId"})
 })
-public class TeamMember {
+public class TeamMember extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,14 +34,14 @@ public class TeamMember {
     @Column(nullable = false)
     private TeamRole role;
 
-    @Column(nullable = false)
-    private LocalDateTime joinedAt;
+    public void updateRole(TeamRole newRole) {
+        this.role = newRole;
+    }
 
     @Builder
     public TeamMember(Team team, User user, TeamRole role) {
         this.team = team;
         this.user = user;
         this.role = role;
-        this.joinedAt = LocalDateTime.now();
     }
 }
