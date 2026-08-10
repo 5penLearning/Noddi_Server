@@ -61,6 +61,19 @@ public class MeetingService {
                 .map(MeetingResponseDto.ParticipantInfo::from)
                 .toList();
     }
+
+    public MeetingResponseDto.RecordingUrlDto getRecordingUrl(Long meetingId, Long currentUserId) {
+        Meeting meeting = getMeetingOrThrow(meetingId);
+        User user = getUserOrThrow(currentUserId);
+        validateTeamMember(meeting.getTeam(), user);
+
+        if (meeting.getRecordingId() == null) {
+            throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
+        }
+
+        String accessLink = webRtcClient.getRecordingAccessLink(meeting.getRecordingId());
+        return new MeetingResponseDto.RecordingUrlDto(accessLink);
+    }
     //회의 예약 생성 (SCHEDULED)
     @Transactional
     public MeetingResponseDto.Info createMeeting(MeetingRequestDto.Create request, Long currentUserId) {
@@ -158,13 +171,12 @@ public class MeetingService {
         }
     }
 
-    //웹훅 수신: 녹음본 S3 업로드 완료 시 URL 갱신
+    //웹훅 수신: 녹음본 S3 업로드 완료 시 recordingId 갱신
     @Transactional
-    public void updateRecordingUrl(String roomName, String recordingUrl) {
+    public void updateRecordingId(String roomName, String recordingId) {
         Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
-        meeting.updateRecordingUrl(recordingUrl);
-        log.info("[MeetingService] Webhook 녹음본 URL 갱신 완료: meetingId={}, url={}",
-                meeting.getMeetingId(), recordingUrl);
+        meeting.updateRecordingId(recordingId);
+        log.info("[MeetingService] DB 녹음 ID 업데이트 완료: meetingId={}, recordingId={}", meeting.getMeetingId(), recordingId);
     }
 
     @Transactional
@@ -182,7 +194,7 @@ public class MeetingService {
             throw new GeneralException(MeetingErrorCode.ALREADY_PROCESSING_SUMMARY);
         }
 
-        if (meeting.getRecordingUrl() == null) {
+        if (meeting.getRecordingId() == null) {
             throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
         }
         meeting.startAiProcessing();

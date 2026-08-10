@@ -12,4 +12,6 @@ public interface WebRtcClient {
      * @param roomName 삭제할 방 이름
      */
     void deleteRoom(String roomName);
+
+    String getRecordingAccessLink(String recordingId);
 }

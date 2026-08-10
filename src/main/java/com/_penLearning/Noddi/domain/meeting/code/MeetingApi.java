@@ -32,6 +32,28 @@ public interface MeetingApi {
             Long meetingId,
             @AuthenticationPrincipal AuthMember authMember
     );
+
+    @Operation(summary = "회의 녹음본 다운로드 URL 조회", description = "종료된 회의의 1시간 유효한 최신 S3 녹음본 다운로드 URL을 동적으로 생성하여 반환합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "녹음본 URL 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "녹음본이 아직 준비되지 않음 (웹훅 수신 전이거나 녹음본 없음)",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<MeetingResponseDto.RecordingUrlDto> getRecordingUrl(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
     @Operation(summary = "팀별 회의 목록 조회", description = "특정 팀의 모든 회의(예약/진행/종료) 목록을 조회합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
