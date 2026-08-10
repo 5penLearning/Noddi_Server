@@ -9,7 +9,7 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class OpenAiConfig {
     @Value("${oepnai.api-key:}")
-    private String oepnAiApiKey;
+    private String openAiApiKey;
 
     @Bean(name = "openAiRestClient")
     public RestClient openAiRestClient() {
@@ -19,7 +19,7 @@ public class OpenAiConfig {
         return RestClient.builder()
                 .baseUrl("https://api.openai.com/v1")
                 .requestFactory(factory)
-                .defaultHeader("Authorization", "Bearer " + oepnAiApiKey)
+                .defaultHeader("Authorization", "Bearer " + openAiApiKey)
                 .build();
     }
 }

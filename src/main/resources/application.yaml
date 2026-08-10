@@ -55,3 +55,6 @@ daily:
 
 springdoc:
   use-fqn: true #스웨거 클래스명 충돌 방지
+
+openai:
+  api-key: ${OPENAI_API_KEY}

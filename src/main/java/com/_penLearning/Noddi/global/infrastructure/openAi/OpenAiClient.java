@@ -3,6 +3,7 @@ package com._penLearning.Noddi.global.infrastructure.openAi;
 import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.global.exception.GeneralException;
+import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenApiResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 import java.io.InputStream;
@@ -27,7 +29,6 @@ public class OpenAiClient {
     @Qualifier("openAiRestClient")
     private final RestClient openAiRestClient;
 
-    @SuppressWarnings("unchecked")
     public String transcribeAudio(String audioUrl) {
         log.info("[OpenAI Whisper] STT 변환 시작");
         try {
@@ -36,28 +37,28 @@ public class OpenAiClient {
             byte[] audioBytes;
 
             try (InputStream in = url.openStream()) {
-                audioBytes = in.readAllBytes(); // 빨대를 통해 모든 오디오 바이트 데이터를 RAM 메모리로 쭉 빨아들입니다!
+                audioBytes = in.readAllBytes();
             }
-            // 메모리에 있는 바이트 데이터를 "recording.mp4"라는 이름을 가진 '가짜 실물 파일' 객체로 포장합니다.
+            // 메모리에 있는 바이트 데이터를 "recording.mp4"라는 이름을 가진 '가짜 실물 파일' 객체로 포장
             ByteArrayResource audioResource = new ByteArrayResource(audioBytes) {
                 @Override
                 public String getFilename() { return "recording.mp4"; }
             };
-            // 4. HTTP POST 요청에 보낼 Body(폼 데이터)를 박스에 차곡차곡 담습니다.
+            // HTTP POST 요청에 보낼 Body(폼 데이터)를 박스 담음
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", audioResource);
             body.add("model", "whisper-1");
             body.add("language", "ko");
-            // 5. 드디어 OpenAI 서버로 HTTP 요청을 쏩니다!
-            Map<String, Object> response = openAiRestClient.post()
+            // OpenAI 서버로 HTTP 요청
+            OpenApiResponseDto.Transcription response = openAiRestClient.post()
                     .uri("/audio/transcriptions")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
-                    .body(Map.class);
+                    .body(OpenApiResponseDto.Transcription.class);
             // 응답에서 "text"라는 열쇠(Key)가 있으면, 그 안에 든 원문 문자열을 빼서 리턴
-            if (response != null && response.containsKey("text")) {
-                return (String) response.get("text");
+            if (response != null && StringUtils.hasText(response.text())) {
+                return response.text();
             }
             throw new GeneralException(SummaryErrorCode.STT_PROCESSING_FAILED); // 만약 "text"가 없으면 에러를 냅니다.
         } catch (Exception e) {
