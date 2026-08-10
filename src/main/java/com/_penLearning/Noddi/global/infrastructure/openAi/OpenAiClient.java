@@ -25,7 +25,7 @@ import java.util.Map;
 public class OpenAiClient {
 
     @Qualifier("openAiRestClient")
-    private final RestClient restClient;
+    private final RestClient openAiRestClient;
 
     @SuppressWarnings("unchecked")
     public String transcribeAudio(String audioUrl) {
@@ -49,7 +49,7 @@ public class OpenAiClient {
             body.add("model", "whisper-1");
             body.add("language", "ko");
             // 5. 드디어 OpenAI 서버로 HTTP 요청을 쏩니다!
-            Map<String, Object> response = restClient.post()
+            Map<String, Object> response = openAiRestClient.post()
                     .uri("/audio/transcriptions")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
@@ -71,7 +71,7 @@ public class OpenAiClient {
         log.info("[OpenAI ChatGPT] 회의록 JSON 요약 시작");
         try {
             //프롬포트 작성
-            String systemPrompt = "너는 비즈니스 회의 요약 전문가야. 제공되는 회의 대화록을 바탕으로 프론트엔드 UI에 직접 매핑될 수 있도록 반드시 완벽한 JSON 형식으로만 응답해줘. 다른 설명은 절대 덧붙이지 마.\n\n" +
+            String systemPrompt = "너는 비즈니스 회의 요약 전문가야. 제공되는 회의 대화록을 바탕으로 반드시 완벽한 JSON 형식으로만 응답해.\n\n" +
                     "【JSON 구조 필수 조건】\n" +
                     "{\n" +
                     "  \"summary\": \"회의 전체 핵심 요약 (3~4줄)\",\n" +
@@ -80,7 +80,7 @@ public class OpenAiClient {
                     "    { \"title\": \"이슈 내용\", \"status\": \"미해결/검토 중/완료 중 택 1\" }\n" +
                     "  ],\n" +
                     "  \"tasks\": [\n" +
-                    "    { \"assignee\": \"담당자 이름(없으면 미정)\", \"task\": \"할 일 내용\", \"deadline\": \"기한(MM/DD 형식, 모르면 미정)\", \"status\": \"대기/진행 중/완료 중 택 1\" }\n" +
+                    "    { \"assignee\": \"담당자 이름(없으면 미정)\", \"task\": \"할 일 내용\", \"deadline\": \"마감기한(반드시 YYYY-MM-DD 형식. 연도를 모르면 올해 연도 사용. 도저히 파악 불가면 문자열 \\\"null\\\")\" }\n" +
                     "  ]\n" +
                     "}";
             // 시스템 명령(system)과 사용자의 원문(user)을 묶어서 채팅 기록(messages)을 생성
@@ -96,7 +96,7 @@ public class OpenAiClient {
                     "response_format", Map.of("type", "json_object")
             );
             // OpenAI 챗봇 서버로 요청 (응답 대기 최대 2분)
-            Map<String, Object> response = restClient.post()
+            Map<String, Object> response = openAiRestClient.post()
                     .uri("/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(requestBody)
