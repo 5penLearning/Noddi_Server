@@ -43,17 +43,17 @@ public class UserService {
     public void updatePassword(Long userId, UserRequestDto.UpdatePassword request) {
         User user = userRepository.findById(userId)
                 // 실제 적용 시 UserErrorCode.USER_NOT_FOUND 사용 권장
-                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+                .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
 
         // 1. 현재 비밀번호 일치 여부 검증
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             // 실제 적용 시 UserErrorCode.INVALID_PASSWORD 등 커스텀 예외 사용 권장
-            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+            throw new GeneralException(UserErrorCode.INVALID_CURRENT_PASSWORD);
         }
 
         // 2. 새 비밀번호와 현재 비밀번호가 같은지 방어 로직 (선택 사항)
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new RuntimeException("새로운 비밀번호는 기존 비밀번호와 달라야 합니다.");
+            throw new GeneralException(UserErrorCode.SAME_AS_OLD_PASSWORD);
         }
 
         // 3. 비밀번호 암호화 후 엔티티 업데이트
