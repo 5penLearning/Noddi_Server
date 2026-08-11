@@ -1,18 +1,18 @@
 package com._penLearning.Noddi.domain.qa.entity;
 
+import com._penLearning.Noddi.domain.user.entity.User;
+import com._penLearning.Noddi.global.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "QaAnswer")
-public class QaAnswer {
+public class QaAnswer extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,24 +22,22 @@ public class QaAnswer {
     @JoinColumn(name = "questionId", nullable = false, unique = true)
     private QaQuestion question;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    // 최신 수정본 ID (null이면 수정 없음)
-    private Long latestRevisionId;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private AnswerType answerType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "answeredById")
+    private User answeredBy;
 
     @Builder
-    public QaAnswer(QaQuestion question, String content) {
+    public QaAnswer(QaQuestion question, String content, User answeredBy, AnswerType answerType) {
         this.question = question;
         this.content = content;
-        this.createdAt = LocalDateTime.now();
-    }
-
-    public void updateLatestRevision(Long revisionId) {
-        this.latestRevisionId = revisionId;
+        this.answeredBy = answeredBy;
+        this.answerType = answerType;
     }
 }
