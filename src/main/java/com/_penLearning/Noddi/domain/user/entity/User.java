@@ -31,19 +31,19 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private Boolean isActive = true;
-
     @Builder
     public User(Organization organization, String email, String name, String password) {
         this.organization = organization;
         this.email = email;
         this.name = name;
         this.password = password;
-        this.isActive = true;
     }
 
-    public void deactivate() {
-        this.isActive = false;
+    public void updateProfile(String name) {
+        this.name = name;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
     }
 }
