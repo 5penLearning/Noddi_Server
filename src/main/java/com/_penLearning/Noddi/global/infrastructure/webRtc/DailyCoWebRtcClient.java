@@ -19,7 +19,7 @@ import java.util.UUID;
 public class DailyCoWebRtcClient implements WebRtcClient{
 
     @Qualifier("dailyRestClient")
-    private final RestClient restClient;
+    private final RestClient dailyRestClient;
 
     @Override
     public String createRoom() {
@@ -29,7 +29,7 @@ public class DailyCoWebRtcClient implements WebRtcClient{
         //현재 시각 + 10분(600초) 후 Unix Timestamp(초 단위) 계산
         long exp = (System.currentTimeMillis() / 1000) + 600;
         try {
-            DailyCreateRoomResponseDto response = restClient.post()
+            DailyCreateRoomResponseDto response = dailyRestClient.post()
                     .uri("/rooms")
                     .body(Map.of(
                             "name", roomName,
@@ -62,7 +62,7 @@ public class DailyCoWebRtcClient implements WebRtcClient{
      */
     public String getRecordingAccessLink(String recordingId) {
         try {
-            DailyAccessLinkResponseDto response = restClient.get()
+            DailyAccessLinkResponseDto response = dailyRestClient.get()
                     .uri("/recordings/{recordingId}/access-link", recordingId)
                     .retrieve()
                     .body(DailyAccessLinkResponseDto.class);
@@ -79,7 +79,7 @@ public class DailyCoWebRtcClient implements WebRtcClient{
 
     @Override
     public void deleteRoom(String roomName) {
-        restClient.delete()
+        dailyRestClient.delete()
                 .uri("/rooms/{roomName}", roomName)
                 .retrieve()
                 .toBodilessEntity();

@@ -27,6 +27,10 @@ public class MeetingSummary {
     @Column(nullable = false)
     private String summaryText;
 
+    @Lob
+    @Column(nullable = false)
+    private String rawTranscript;
+
     // List<String>을 JSON 직렬화하여 저장
     private String decisions;
 
@@ -36,11 +40,12 @@ public class MeetingSummary {
     private LocalDateTime createdAt;
 
     @Builder
-    public MeetingSummary(Meeting meeting, String summaryText, String decisions, String issues) {
+    public MeetingSummary(Meeting meeting, String summaryText, String decisions, String issues, String rawTranscript) {
         this.meeting = meeting;
         this.summaryText = summaryText;
         this.decisions = decisions;
         this.issues = issues;
         this.createdAt = LocalDateTime.now();
+        this.rawTranscript = rawTranscript;
     }
 }

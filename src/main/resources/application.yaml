@@ -55,3 +55,13 @@ daily:
 
 springdoc:
   use-fqn: true #스웨거 클래스명 충돌 방지
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  audio:
+    # OpenAI 파일 전사 API의 25MB 업로드 제한을 넘기기 전에 백엔드에서 다운로드를 중단한다.
+    max-file-size-bytes: ${OPENAI_AUDIO_MAX_FILE_SIZE_BYTES:25000000}
+    # Daily 녹음 파일 서버와 연결이 만들어질 때까지 기다리는 최대 시간(ms)이다.
+    download-connect-timeout-ms: ${OPENAI_AUDIO_DOWNLOAD_CONNECT_TIMEOUT_MS:10000}
+    # 연결 이후 파일 데이터 수신이 멈췄을 때 기다리는 최대 시간(ms)이다.
+    download-read-timeout-ms: ${OPENAI_AUDIO_DOWNLOAD_READ_TIMEOUT_MS:60000}

@@ -33,3 +33,10 @@ daily:
     key: test-daily-key
   webhook:
     secret: test-webhook-secret
+openai:
+  api-key: ${OPENAI_API_KEY:test-openai-key}
+  audio:
+    # 운영 설정과 같은 기본값을 사용해 테스트 컨텍스트에서도 설정 주입 여부를 확인한다.
+    max-file-size-bytes: 25000000
+    download-connect-timeout-ms: 10000
+    download-read-timeout-ms: 60000
