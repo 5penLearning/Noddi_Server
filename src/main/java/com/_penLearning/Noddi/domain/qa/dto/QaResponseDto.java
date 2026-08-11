@@ -98,12 +98,14 @@ public class QaResponseDto {
         private String answeredByName;
 
         public static AnswerInfo from(QaAnswer answer) {
+            boolean isAiAnswer = answer.getAnswerType() == AnswerType.AI;
+
             return AnswerInfo.builder()
                     .answerId(answer.getAnswerId())
                     .content(answer.getContent())
                     .answerType(answer.getAnswerType())
-                    .answeredById(answer.getAnsweredBy() != null ? answer.getAnsweredBy().getUserId() : null)
-                    .answeredByName(answer.getAnsweredBy() != null ? answer.getAnsweredBy().getName() : "AI")
+                    .answeredById(isAiAnswer ? null : answer.getAnsweredBy().getUserId())
+                    .answeredByName(isAiAnswer ? "AI" : answer.getAnsweredBy().getName())
                     .build();
         }
     }

@@ -1,7 +1,9 @@
 package com._penLearning.Noddi.domain.qa.entity;
 
+import com._penLearning.Noddi.domain.qa.code.QaErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.global.common.BaseEntity;
+import com._penLearning.Noddi.global.exception.GeneralException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -35,9 +37,28 @@ public class QaAnswer extends BaseEntity {
 
     @Builder
     public QaAnswer(QaQuestion question, String content, User answeredBy, AnswerType answerType) {
+        validateAnswerer(answerType, answeredBy);
         this.question = question;
         this.content = content;
         this.answeredBy = answeredBy;
         this.answerType = answerType;
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void validateAnswerer() {
+        validateAnswerer(answerType, answeredBy);
+    }
+
+    private static void validateAnswerer(AnswerType answerType, User answeredBy) {
+        if (answerType == null) {
+            throw new GeneralException(QaErrorCode.INVALID_ANSWER_TYPE);
+        }
+        if (answerType == AnswerType.AI && answeredBy != null) {
+            throw new GeneralException(QaErrorCode.INVALID_ANSWERER);
+        }
+        if (answerType == AnswerType.HUMAN && answeredBy == null) {
+            throw new GeneralException(QaErrorCode.INVALID_ANSWERER);
+        }
     }
 }
