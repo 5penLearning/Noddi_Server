@@ -3,7 +3,7 @@ package com._penLearning.Noddi.global.infrastructure.openAi;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenAiRequestDto;
-import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenApiResponseDto;
+import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenAiResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -143,12 +143,12 @@ public class OpenAiClient {
         body.add("model", "whisper-1");
         body.add("language", "ko");
 
-        OpenApiResponseDto.Transcription response = openAiRestClient.post()
+        OpenAiResponseDto.Transcription response = openAiRestClient.post()
                 .uri("/audio/transcriptions")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(body)
                 .retrieve()
-                .body(OpenApiResponseDto.Transcription.class);
+                .body(OpenAiResponseDto.Transcription.class);
 
         if (response != null && StringUtils.hasText(response.text())) {
             return response.text();
@@ -172,7 +172,7 @@ public class OpenAiClient {
         }
     }
 
-    public OpenApiResponseDto.MeetingSummary summarizeText(
+    public OpenAiResponseDto.MeetingSummary summarizeText(
             String rawTranscript,
             LocalDate currentDate,
             List<OpenAiRequestDto.TeamMember> teamMembers
@@ -273,12 +273,12 @@ public class OpenAiClient {
                     );
 
             // 응답 JSON을 Map으로 받지 않고 ChatCompletion DTO로 바로 역직렬화한다.
-            OpenApiResponseDto.ChatCompletion response = openAiRestClient.post()
+            OpenAiResponseDto.ChatCompletion response = openAiRestClient.post()
                     .uri("/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
-                    .body(OpenApiResponseDto.ChatCompletion.class);
+                    .body(OpenAiResponseDto.ChatCompletion.class);
 
             // 응답 또는 choices가 비어 있으면 정상적인 요약 결과가 아니므로 실패 처리한다.
             if (response == null
@@ -288,7 +288,7 @@ public class OpenAiClient {
             }
 
             // 현재는 OpenAI가 반환한 첫 번째 응답 후보를 사용한다.
-            OpenApiResponseDto.Message message = response.choices().getFirst().message();
+            OpenAiResponseDto.Message message = response.choices().getFirst().message();
 
             // message가 없거나 안전 정책에 따른 refusal이 있으면 저장 가능한 결과가 아니다.
             if (message == null || StringUtils.hasText(message.refusal())) {
@@ -303,7 +303,7 @@ public class OpenAiClient {
             // content JSON 문자열을 최종 MeetingSummary DTO로 변환해 호출자에게 반환한다.
             return objectMapper.readValue(
                     message.content(),
-                    OpenApiResponseDto.MeetingSummary.class
+                    OpenAiResponseDto.MeetingSummary.class
             );
         } catch (GeneralException e) {
             // 이미 프로젝트 공통 예외로 판단한 오류는 다른 예외로 다시 감싸지 않고 그대로 전달한다.

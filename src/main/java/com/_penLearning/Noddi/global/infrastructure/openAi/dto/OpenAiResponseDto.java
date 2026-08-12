@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 import java.util.List;
 
-public class OpenApiResponseDto {
+public class OpenAiResponseDto {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Transcription(
