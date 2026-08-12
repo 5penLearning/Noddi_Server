@@ -163,7 +163,7 @@ public class MeetingService {
 
     @Transactional
     public void endMeetingByRoomName(String roomName) {
-        Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
+        Meeting meeting = getMeetingByRoomNameWithLockOrThrow(roomName);
         // 이미 종료된 회의가 아닐 때만 종료 처리
         if (meeting.getStatus() == MeetingStatus.IN_PROGRESS) {
             meeting.end();
@@ -174,7 +174,7 @@ public class MeetingService {
     //웹훅 수신: 녹음본 S3 업로드 완료 시 recordingId 갱신
     @Transactional
     public void updateRecordingId(String roomName, String recordingId) {
-        Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
+        Meeting meeting = getMeetingByRoomNameWithLockOrThrow(roomName);
         meeting.updateRecordingId(recordingId);
         log.info("[MeetingService] DB 녹음 ID 업데이트 완료: meetingId={}, recordingId={}", meeting.getMeetingId(), recordingId);
     }
@@ -229,6 +229,11 @@ public class MeetingService {
 
     private Meeting getMeetingWithLockOrThrow(Long meetingId) {
         return meetingRepository.findByIdWithPessimisticLock(meetingId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
+    }
+
+    private Meeting getMeetingByRoomNameWithLockOrThrow(String roomName) {
+        return meetingRepository.findByRoomNameWithPessimisticLock(roomName)
                 .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
     }
 

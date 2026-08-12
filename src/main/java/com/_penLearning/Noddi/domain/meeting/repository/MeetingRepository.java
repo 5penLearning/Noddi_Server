@@ -23,4 +23,9 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     Optional<Meeting> findByIdWithPessimisticLock(@Param("meetingId") Long meetingId);
     List<Meeting> findAllByTeam(Team team);
     Optional<Meeting> findByRoomName(String roomName);
+
+     //Daily 웹훅 처리 중 동일 회의를 동시에 수정하지 못하도록 잠금을 건다.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM Meeting m WHERE m.roomName = :roomName")
+    Optional<Meeting> findByRoomNameWithPessimisticLock(@Param("roomName") String roomName);
 }
