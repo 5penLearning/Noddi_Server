@@ -194,7 +194,7 @@ public class MeetingService {
 
         //FAILED 상태인지 확인하고 PROCESSING으로 변경
         meeting.retryAiProcessing();
-        publishAiProcessingEventIfReady(meeting);
+        publishAiProcessingEvent(meeting);
         log.info(
                 "[MeetingService] AI 회의록 재시도 요청: meetingId={}, requestedBy={}",
                 meetingId,
