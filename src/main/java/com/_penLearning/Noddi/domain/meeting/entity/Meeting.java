@@ -83,6 +83,20 @@ public class Meeting extends BaseEntity {
         this.recordingId = recordingId;
     }
 
+    public boolean tryStartAiProcessing() {
+        if (this.status != MeetingStatus.ENDED) {
+            return false;
+        }
+        if (this.recordingId == null) {
+            return false;
+        }
+        if (this.aiStatus != AiStatus.PENDING) {
+            return false;
+        }
+        //회의 종료와 녹음 준비가 모두 완료되었고 PENDING 상태일 때만 변경
+        this.aiStatus = AiStatus.PROCESSING;
+        return true;
+    }
 
     //Ai 요약 관련 메소드
     public void startAiProcessing() {
