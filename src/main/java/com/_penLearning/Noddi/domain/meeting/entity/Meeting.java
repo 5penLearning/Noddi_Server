@@ -108,7 +108,7 @@ public class Meeting extends BaseEntity {
         }
         this.aiStatus = AiStatus.PROCESSING;
     }
-    public void completeAiProcessing(String transcriptText) {
+    public void completeAiProcessing() {
         this.aiStatus = AiStatus.COMPLETED;
     }
 
