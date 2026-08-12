@@ -7,6 +7,7 @@ import com._penLearning.Noddi.domain.meeting.dto.MeetingRequestDto;
 import com._penLearning.Noddi.domain.meeting.dto.MeetingResponseDto;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.meeting.entity.MeetingParticipant;
+import com._penLearning.Noddi.domain.meeting.event.MeetingAiProcessingRequestedEvent;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingParticipantRepository;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
@@ -18,6 +19,7 @@ import com._penLearning.Noddi.global.exception.GeneralException;
 import com._penLearning.Noddi.global.infrastructure.webRtc.WebRtcClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -36,6 +38,7 @@ public class MeetingService {
     private final UserRepository userRepository;
     private final WebRtcClient webRtcClient;
     private final TransactionTemplate transactionTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MeetingResponseDto.Info getMeetingInfo(Long meetingId, Long currentUserId) {
         Meeting meeting = getMeetingOrThrow(meetingId);
@@ -151,7 +154,7 @@ public class MeetingService {
 
             meeting.end();
             log.info("[MeetingService] 회의 종료 완료(DB 업데이트): meetingId={}", meetingId);
-
+            publishAiProcessingEventIfReady(meeting);
             return meeting.getRoomName();
         });
 
@@ -169,6 +172,8 @@ public class MeetingService {
             meeting.end();
             log.info("[MeetingService] Webhook에 의해 회의 자동 종료 완료: roomName={}", roomName);
         }
+
+        publishAiProcessingEventIfReady(meeting);
     }
 
     //웹훅 수신: 녹음본 S3 업로드 완료 시 recordingId 갱신
@@ -177,6 +182,8 @@ public class MeetingService {
         Meeting meeting = getMeetingByRoomNameWithLockOrThrow(roomName);
         meeting.updateRecordingId(recordingId);
         log.info("[MeetingService] DB 녹음 ID 업데이트 완료: meetingId={}, recordingId={}", meeting.getMeetingId(), recordingId);
+
+        publishAiProcessingEventIfReady(meeting);
     }
 
     @Transactional
@@ -199,6 +206,14 @@ public class MeetingService {
         }
         meeting.startAiProcessing();
         log.info("[MeetingService] AI 요약 요청 수신 완료: meetingId={}", meetingId);
+    }
+
+    private void publishAiProcessingEventIfReady(Meeting meeting) {
+        if (!meeting.tryStartAiProcessing()) {
+            return;
+        }
+        eventPublisher.publishEvent(new MeetingAiProcessingRequestedEvent(meeting.getMeetingId()));
+        log.info("[MeetingService] AI 자동 처리 이벤트 발행: meetingId={}", meeting.getMeetingId());
     }
 
     private void validateTeamMember(Team team, User user) {
