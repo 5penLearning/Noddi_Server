@@ -217,4 +217,87 @@ public class OpenAiClient {
             throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
         }
     }
+
+    private Map<String, Object> createTaskSchema() {
+        return Map.of(
+                // tasks 배열의 각 항목은 content, 담당자, 마감일을 가진 객체
+                "type", "object",
+
+                "properties", Map.of(
+                        "content", Map.of(
+                                "type", "string",
+                                "description", "회의 이후 수행해야 할 구체적인 할 일"
+                        ),
+                        "assigneeUserId", Map.of(
+                                "type", List.of("integer", "null"),
+                                "description", "팀원 목록과 정확히 일치하는 담당자 ID"
+                        ),
+                        "assigneeName", Map.of(
+                                "type", List.of("string", "null"),
+                                "description", "전문에서 확인된 담당자 이름"
+                        ),
+                        "dueDate", Map.of(
+                                "type", List.of("string", "null"),
+                                "description", "YYYY-MM-DD 형식의 마감일"
+                        ),
+                        "isUncertain", Map.of(
+                                "type", "boolean",
+                                "description", "담당자 연결이 불확실하면 true"
+                        )
+                ),
+
+                "required", List.of(
+                        "content",
+                        "assigneeUserId",
+                        "assigneeName",
+                        "dueDate",
+                        "isUncertain"
+                ),
+
+                "additionalProperties", false
+        );
+    }
+
+    /**
+     * OpenAI가 반환할 전체 회의록의 JSON 구조를 정의한다.
+     * 최종 응답 DTO인 OpenApiResponseDto.MeetingSummary 구조와 동일하게 맞춘다.
+     */
+    private Map<String, Object> createMeetingSummarySchema() {
+        return Map.of(
+                // 전체 회의록 응답은 summary, decisions, issues, tasks를 가진 객체
+                "type", "object",
+
+                // 회의록 응답에 들어갈 수 있는 네 가지 필드를 정의
+                "properties", Map.of(
+                        "summary", Map.of(
+                                "type", "string",
+                                "description", "회의 전체 내용을 요약한 3~4문장"
+                        ),
+                        "decisions", Map.of(
+                                "type", "array",
+                                "description", "회의에서 확정된 결정사항 목록",
+                                "items", Map.of("type", "string")
+                        ),
+                        "issues", Map.of(
+                                "type", "array",
+                                "description", "회의에서 논의된 문제나 추가 검토 내용",
+                                "items", Map.of("type", "string")
+                        ),
+                        "tasks", Map.of(
+                                "type", "array",
+                                "description", "회의 이후 수행해야 할 ActionItem 목록",
+                                "items", createTaskSchema()
+                        )
+                ),
+
+                "required", List.of(
+                        "summary",
+                        "decisions",
+                        "issues",
+                        "tasks"
+                ),
+
+                "additionalProperties", false
+        );
+    }
 }

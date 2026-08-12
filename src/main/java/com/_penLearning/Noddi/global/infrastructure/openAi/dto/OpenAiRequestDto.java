@@ -2,11 +2,12 @@ package com._penLearning.Noddi.global.infrastructure.openAi.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
 import java.util.Map;
 
 public class OpenAiRequestDto {
 
-    public record TeamMemter(
+    public record TeamMember(
             Long userId,
             String name
     ) {
@@ -36,7 +37,7 @@ public class OpenAiRequestDto {
     ) {
     }
 
-    //reponse를 정해진 구조로 강제
+    // OpenAI response가 정해진 JSON 구조를 따르도록 설정하는 스키마 껍데기
     public record JsonSchema(
             String name,
             boolean strict,
