@@ -18,7 +18,6 @@ import com._penLearning.Noddi.global.infrastructure.openAi.OpenAiClient;
 import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenAiRequestDto;
 import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenAiResponseDto;
 import com._penLearning.Noddi.global.infrastructure.webRtc.WebRtcClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -85,7 +84,7 @@ public class MeetingAiProcessingService {
                     LocalDate.now(),
                     context.teamMembers()
             );
-            int actionItemCount = aiResult.actionItems() != null ? 0 : aiResult.actionItems().size();
+            int actionItemCount = aiResult.actionItems() == null ? 0 : aiResult.actionItems().size();
             log.info(
                     "[MeetingAiProcessingService] 회의 구조화 요약 완료: meetingId={}, actionItemCount={}",
                     meetingId,
@@ -199,6 +198,7 @@ public class MeetingAiProcessingService {
                     .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
 
             if (meetingSummaryRepository.findByMeeting_MeetingId(meetingId).isPresent()) {
+                meeting.completeAiProcessing();
                 return;
             }
 

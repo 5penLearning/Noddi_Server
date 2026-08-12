@@ -99,15 +99,21 @@ public class Meeting extends BaseEntity {
     }
 
     //Ai 요약 관련 메소드
-    public void startAiProcessing() {
+    public void retryAiProcessing() {
         if (this.status != MeetingStatus.ENDED) {
-            throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_SUMMARY);
+            throw new GeneralException(MeetingErrorCode.AI_RETRY_NOT_ALLOWED);
         }
+
         if (this.recordingId == null) {
             throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
         }
+
+        if (this.aiStatus != AiStatus.FAILED) {
+            throw new GeneralException(MeetingErrorCode.AI_RETRY_NOT_ALLOWED);
+        }
         this.aiStatus = AiStatus.PROCESSING;
     }
+
     public void completeAiProcessing() {
         this.aiStatus = AiStatus.COMPLETED;
     }

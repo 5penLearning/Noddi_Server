@@ -187,32 +187,35 @@ public class MeetingService {
     }
 
     @Transactional
-    public void triggerSummary(Long meetingId, Long currentUserId) {
+    public void retrySummary(Long meetingId, Long currentUserId) {
         Meeting meeting = getMeetingWithLockOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
 
-        //  ENDED(종료된) 회의만 요약 가능
-        if (meeting.getStatus() != MeetingStatus.ENDED) {
-            throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_SUMMARY);
-        }
-        // 이미 PROCESSING(요약 중)이거나 COMPLETED(완료)면 중복 연타 거부
-        if (meeting.getAiStatus() == AiStatus.PROCESSING || meeting.getAiStatus() == AiStatus.COMPLETED) {
-            throw new GeneralException(MeetingErrorCode.ALREADY_PROCESSING_SUMMARY);
-        }
-
-        if (meeting.getRecordingId() == null) {
-            throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
-        }
-        meeting.startAiProcessing();
-        log.info("[MeetingService] AI 요약 요청 수신 완료: meetingId={}", meetingId);
+        //FAILED 상태인지 확인하고 PROCESSING으로 변경
+        meeting.retryAiProcessing();
+        publishAiProcessingEventIfReady(meeting);
+        log.info(
+                "[MeetingService] AI 회의록 재시도 요청: meetingId={}, requestedBy={}",
+                meetingId,
+                currentUserId
+        );
     }
 
+    //최초 자동 실행 조건을 확인한 뒤 이벤트 발행
     private void publishAiProcessingEventIfReady(Meeting meeting) {
         if (!meeting.tryStartAiProcessing()) {
             return;
         }
-        eventPublisher.publishEvent(new MeetingAiProcessingRequestedEvent(meeting.getMeetingId()));
+        publishAiProcessingEvent(meeting);
+
+    }
+
+    //processing 상태 회의 AI 처리 이벤트 발행
+    private void publishAiProcessingEvent(Meeting meeting) {
+        eventPublisher.publishEvent(
+                new MeetingAiProcessingRequestedEvent(meeting.getMeetingId())
+        );
         log.info("[MeetingService] AI 자동 처리 이벤트 발행: meetingId={}", meeting.getMeetingId());
     }
 

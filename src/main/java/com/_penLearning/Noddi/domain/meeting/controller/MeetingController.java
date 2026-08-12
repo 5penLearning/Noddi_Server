@@ -78,10 +78,12 @@ public class MeetingController implements MeetingApi {
     }
 
     @Override
-    @PostMapping("/{meetingId}/summary")
-    public ApiResponse<Void> triggerSummary(
+    @PostMapping("/{meetingId}/summary/retry")
+    public ApiResponse<Void> retrySummary(
             @PathVariable Long meetingId, @AuthenticationPrincipal AuthMember authMember) {
-        meetingService.triggerSummary(meetingId, authMember.getUserId());
-        return ApiResponse.onSuccess("AI 요약 요청이 접수되었습니다. 잠시 후 결과를 확인해 주세요.");
+        meetingService.retrySummary(meetingId, authMember.getUserId());
+        return ApiResponse.onSuccess(
+                "AI 회의록 재처리를 시작했습니다."
+        );
     }
 }

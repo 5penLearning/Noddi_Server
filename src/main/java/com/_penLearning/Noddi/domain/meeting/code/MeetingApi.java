@@ -154,23 +154,44 @@ public interface MeetingApi {
             @AuthenticationPrincipal AuthMember authMember
     );
 
-    @Operation(summary = "AI 요약 트리거", description = "녹음본이 준비된 종료된 회의에 대해 AI 요약을 수동으로 요청합니다.")
+    @Operation(
+            summary = "AI 회의록 재시도",
+            description = "AI 회의록 생성에 실패한 회의를 다시 처리합니다."
+    )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "AI 요약 요청 접수 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "AI 회의록 재시도 접수 성공"
+            ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "녹음본 미준비 또는 잘못된 회의 상태",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+                    description = "FAILED 상태가 아니거나 녹음본이 준비되지 않음",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation = ApiResponse.class
+                            )
+                    )
+            ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "403",
-                    description = "해당 팀의 팀원이 아님",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+                    description = "해당 회의 팀원이 아님",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation = ApiResponse.class
+                            )
+                    )
+            ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "회의를 찾을 수 없음",
-                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation = ApiResponse.class
+                            )
+                    )
+            )
     })
-    ApiResponse<Void> triggerSummary(
+    ApiResponse<Void> retrySummary(
             Long meetingId,
             @AuthenticationPrincipal AuthMember authMember
     );
