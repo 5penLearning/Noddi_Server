@@ -36,11 +36,11 @@ public class OpenApiResponseDto {
             String summary,
             List<String> decisions,
             List<String> issues,
-            List<Task> tasks
+            List<ActionItem> actionItems
     ) {
     }
 
-    public record Task(
+    public record ActionItem(
             String content,
             Long assigneeUserId,
             String assigneeName,

@@ -1,8 +1,8 @@
 package com._penLearning.Noddi.global.infrastructure.openAi;
 
-import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.global.exception.GeneralException;
+import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenAiRequestDto;
 import com._penLearning.Noddi.global.infrastructure.openAi.dto.OpenApiResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +23,7 @@ import java.net.URI;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -38,10 +40,12 @@ public class OpenAiClient {
     private final int audioDownloadConnectTimeoutMs;
     // 연결 이후 파일 데이터가 들어오지 않을 때 기다릴 최대 시간
     private final int audioDownloadReadTimeoutMs;
+    private final ObjectMapper objectMapper;
 
     public OpenAiClient(
             @Qualifier("openAiRestClient")
             RestClient openAiRestClient,
+            ObjectMapper objectMapper,
             // 기본값은 OpenAI 공식 파일 전사 제한인 25,000,000 bytes
             @Value("${openai.audio.max-file-size-bytes:25000000}")
             long maxAudioFileSizeBytes,
@@ -53,6 +57,7 @@ public class OpenAiClient {
             int audioDownloadReadTimeoutMs
     ) {
         this.openAiRestClient = openAiRestClient;
+        this.objectMapper = objectMapper;
         this.maxAudioFileSizeBytes = maxAudioFileSizeBytes;
         this.audioDownloadConnectTimeoutMs = audioDownloadConnectTimeoutMs;
         this.audioDownloadReadTimeoutMs = audioDownloadReadTimeoutMs;
@@ -167,66 +172,158 @@ public class OpenAiClient {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public String summarizeText(String rawTranscript) {
-        log.info("[OpenAI ChatGPT] 회의록 JSON 요약 시작");
+    public OpenApiResponseDto.MeetingSummary summarizeText(
+            String rawTranscript,
+            LocalDate currentDate,
+            List<OpenAiRequestDto.TeamMember> teamMembers
+    ) {
+        log.info("[OpenAI ChatGPT] 회의록 구조화 요약 시작");
+
         try {
-            //프롬포트 작성
-            String systemPrompt = "너는 비즈니스 회의 요약 전문가야. 제공되는 회의 대화록을 바탕으로 반드시 완벽한 JSON 형식으로만 응답해.\n\n" +
-                    "【JSON 구조 필수 조건】\n" +
-                    "{\n" +
-                    "  \"summary\": \"회의 전체 핵심 요약 (3~4줄)\",\n" +
-                    "  \"decisions\": [\"결정사항 1\", \"결정사항 2\"],\n" +
-                    "  \"issues\": [\n" +
-                    "    { \"title\": \"이슈 내용\", \"status\": \"미해결/검토 중/완료 중 택 1\" }\n" +
-                    "  ],\n" +
-                    "  \"tasks\": [\n" +
-                    "    { \"assignee\": \"담당자 이름(없으면 미정)\", \"task\": \"할 일 내용\", \"deadline\": \"마감기한(반드시 YYYY-MM-DD 형식. 연도를 모르면 올해 연도 사용. 도저히 파악 불가면 문자열 \\\"null\\\")\" }\n" +
-                    "  ]\n" +
-                    "}";
-            // 시스템 명령(system)과 사용자의 원문(user)을 묶어서 채팅 기록(messages)을 생성
-            List<Map<String, String>> messages = List.of(
-                    Map.of("role", "system", "content", systemPrompt),
-                    Map.of("role", "user", "content", "다음 회의 대화록을 JSON으로 요약해줘:\n\n" + rawTranscript)
+            // 전문이 비어 있으면 OpenAI를 불필요하게 호출하지 않고 즉시 실패 처리
+            if (!StringUtils.hasText(rawTranscript)) {
+                throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
+            }
+
+            // 팀원이 없는 경우에도 프롬프트에는 null이 아닌 빈 JSON 배열([])을 전달
+            List<OpenAiRequestDto.TeamMember> safeTeamMembers =
+                    teamMembers == null ? List.of() : teamMembers;
+
+            // TeamMember DTO 목록을 AI가 정확히 읽을 수 있는 JSON 문자열로 변환
+            String teamMembersJson = objectMapper.writeValueAsString(safeTeamMembers);
+
+            // system 메시지에는 요약 기준과 담당자·마감일 판단 규칙을 정의
+            String systemPrompt = """
+                    너는 한국어 비즈니스 회의록 작성 전문가다.
+
+                    회의 전문을 근거로 다음 내용을 추출한다.
+                    - 회의 전체 요약
+                    - 확정된 결정사항
+                    - 논의된 문제 또는 추가 검토 이슈
+                    - 회의 중 특정 팀원이 회의 이후 수행하기로 약속했거나 요청받은 구체적인 업무(ActionItem)
+
+                    ActionItem 추출 규칙:
+                    - ActionItem은 회의 이후 누군가가 실제로 수행해야 하는 구체적인 업무다.
+                    - 참석자가 직접 수행하겠다고 약속한 업무와 다른 사람에게 명시적으로 요청하거나 배정한 업무만 추출한다.
+                    - 단순한 의견, 아이디어, 제안, 질문, 정보 공유, 논의 주제는 ActionItem으로 추출하지 않는다.
+                    - 회의 전에 이미 완료된 업무나 전문에서 완료되었다고 보고한 업무는 ActionItem으로 추출하지 않는다.
+                    - 동일한 업무가 여러 번 언급되면 하나의 ActionItem으로 통합한다.
+                    - content에는 회의 내용을 그대로 나열하지 말고, 수행할 행동과 결과물이 드러나는 구체적인 문장 하나를 작성한다.
+                    - 추출한 각 업무는 응답의 actionItems 배열에 담는다.
+                    - 수행할 업무가 명확하지 않다면 억지로 만들지 말고 actionItems를 빈 배열로 반환한다.
+
+                    담당자 연결 규칙:
+                    - 전문에서 담당자가 명시된 경우에만 담당자를 연결한다.
+                    - 제공된 팀원 목록의 userId와 name만 담당자 후보로 사용한다.
+                    - 이름과 사용자가 정확히 한 명의 팀원과 일치할 때만 assigneeUserId와 assigneeName을 반환한다.
+                    - 담당자가 불명확하거나 동명이인이거나 팀 외 사용자라면 assigneeUserId와 assigneeName은 null이다.
+                    - 담당자를 확정할 수 없으면 isUncertain은 true, 확정할 수 있으면 false다.
+                    - 화자 구분이 없는 전문에서 '제가 하겠습니다' 같은 표현만으로 담당자를 추측하지 않는다.
+
+                    마감일 규칙:
+                    - 제공된 현재 날짜를 기준으로 상대적인 날짜를 YYYY-MM-DD로 변환한다.
+                    - 전문에서 마감일을 확인할 수 없으면 dueDate는 null이다.
+                    - 전문에 없는 담당자, 날짜, 결정사항을 만들거나 추측하지 않는다.
+                    """;
+
+            // user 메시지에는 실제 분석에 필요한 기준 날짜, 팀원 목록, 회의 전문을 전달
+            String userPrompt = """
+                    현재 날짜:
+                    %s
+
+                    팀원 목록:
+                    %s
+
+                    회의 전문:
+                    %s
+                    """.formatted(
+                    currentDate,
+                    teamMembersJson,
+                    rawTranscript
             );
-            // ChatGPT에게 보낼 옵션들을 세팅
-            Map<String, Object> requestBody = Map.of(
-                    "model", "gpt-4o-mini", // 사용할 싸고 빠른 모델
-                    "messages", messages,
-                    "temperature", 0.3, // 창의성 수치 (낮을수록 보수적이고 정확한 요약을 함)
-                    "response_format", Map.of("type", "json_object")
+
+            // OpenAI의 system/user 메시지를 Map이 아닌 요청 DTO로 구성
+            List<OpenAiRequestDto.Message> messages = List.of(
+                    new OpenAiRequestDto.Message("system", systemPrompt),
+                    new OpenAiRequestDto.Message("user", userPrompt)
             );
-            // OpenAI 챗봇 서버로 요청 (응답 대기 최대 2분)
-            Map<String, Object> response = openAiRestClient.post()
+
+            // 앞에서 정의한 회의록 Schema에 이름을 붙이고 strict 모드를 활성화
+            OpenAiRequestDto.JsonSchema jsonSchema =
+                    new OpenAiRequestDto.JsonSchema(
+                            "meeting_summary",
+                            true,
+                            createMeetingSummarySchema()
+                    );
+
+            // 일반 JSON 모드가 아니라 JSON Schema 기반 Structured Outputs를 요청
+            OpenAiRequestDto.ResponseFormat responseFormat =
+                    new OpenAiRequestDto.ResponseFormat(
+                            "json_schema",
+                            jsonSchema
+                    );
+
+            // OpenAI Chat Completions API에 전달할 최상위 요청 DTO를 완성
+            OpenAiRequestDto.ChatCompletion request =
+                    new OpenAiRequestDto.ChatCompletion(
+                            "gpt-4o-mini",
+                            messages,
+                            0.2,
+                            responseFormat
+                    );
+
+            // 응답 JSON을 Map으로 받지 않고 ChatCompletion DTO로 바로 역직렬화한다.
+            OpenApiResponseDto.ChatCompletion response = openAiRestClient.post()
                     .uri("/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(requestBody)
+                    .body(request)
                     .retrieve()
-                    .body(Map.class);
+                    .body(OpenApiResponseDto.ChatCompletion.class);
 
-            if (response != null && response.containsKey("choices")) {
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-                if (!choices.isEmpty()) {
-                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    return (String) message.get("content");
-                }
+            // 응답 또는 choices가 비어 있으면 정상적인 요약 결과가 아니므로 실패 처리한다.
+            if (response == null
+                    || response.choices() == null
+                    || response.choices().isEmpty()) {
+                throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
             }
-            throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
+
+            // 현재는 OpenAI가 반환한 첫 번째 응답 후보를 사용한다.
+            OpenApiResponseDto.Message message = response.choices().getFirst().message();
+
+            // message가 없거나 안전 정책에 따른 refusal이 있으면 저장 가능한 결과가 아니다.
+            if (message == null || StringUtils.hasText(message.refusal())) {
+                throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
+            }
+
+            // Structured Outputs 결과는 message.content 안에 JSON 문자열 형태로 들어 있다.
+            if (!StringUtils.hasText(message.content())) {
+                throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
+            }
+
+            // content JSON 문자열을 최종 MeetingSummary DTO로 변환해 호출자에게 반환한다.
+            return objectMapper.readValue(
+                    message.content(),
+                    OpenApiResponseDto.MeetingSummary.class
+            );
+        } catch (GeneralException e) {
+            // 이미 프로젝트 공통 예외로 판단한 오류는 다른 예외로 다시 감싸지 않고 그대로 전달한다.
+            throw e;
         } catch (Exception e) {
-            log.error("[OpenAI ChatGPT] 요약 실패", e);
+            // 네트워크, 요청 직렬화, 응답 JSON 변환 오류를 회의록 요약 실패로 통일한다.
+            log.error("[OpenAI ChatGPT] 구조화 요약 실패", e);
             throw new GeneralException(SummaryErrorCode.SUMMARY_PROCESSING_FAILED);
         }
     }
 
-    private Map<String, Object> createTaskSchema() {
+    private Map<String, Object> createActionItemSchema() {
         return Map.of(
-                // tasks 배열의 각 항목은 content, 담당자, 마감일을 가진 객체
+                // actionItems 배열의 각 항목은 content, 담당자, 마감일을 가진 객체
                 "type", "object",
 
                 "properties", Map.of(
                         "content", Map.of(
                                 "type", "string",
-                                "description", "회의 이후 수행해야 할 구체적인 할 일"
+                                "description", "회의 중 누군가가 수행하기로 약속했거나 명시적으로 요청·배정받은, 행동과 결과물이 드러나는 구체적인 업무"
                         ),
                         "assigneeUserId", Map.of(
                                 "type", List.of("integer", "null"),
@@ -264,7 +361,7 @@ public class OpenAiClient {
      */
     private Map<String, Object> createMeetingSummarySchema() {
         return Map.of(
-                // 전체 회의록 응답은 summary, decisions, issues, tasks를 가진 객체
+                // 전체 회의록 응답은 summary, decisions, issues, actionItems를 가진 객체
                 "type", "object",
 
                 // 회의록 응답에 들어갈 수 있는 네 가지 필드를 정의
@@ -283,10 +380,10 @@ public class OpenAiClient {
                                 "description", "회의에서 논의된 문제나 추가 검토 내용",
                                 "items", Map.of("type", "string")
                         ),
-                        "tasks", Map.of(
+                        "actionItems", Map.of(
                                 "type", "array",
-                                "description", "회의 이후 수행해야 할 ActionItem 목록",
-                                "items", createTaskSchema()
+                                "description", "회의 이후 누군가가 실제로 수행하기로 약속했거나 명시적으로 요청·배정받은 업무 목록. 단순 의견, 아이디어, 질문, 정보 공유 및 이미 완료된 업무는 제외한다.",
+                                "items", createActionItemSchema()
                         )
                 ),
 
@@ -294,7 +391,7 @@ public class OpenAiClient {
                         "summary",
                         "decisions",
                         "issues",
-                        "tasks"
+                        "actionItems"
                 ),
 
                 "additionalProperties", false
