@@ -15,7 +15,7 @@ public class OpenApiResponseDto {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ChatCompletion(
-            List<String> choices
+            List<Choice> choices
     ) {
     }
 
