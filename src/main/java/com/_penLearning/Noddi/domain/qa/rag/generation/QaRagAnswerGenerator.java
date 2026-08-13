@@ -27,7 +27,7 @@ import java.util.List;
 )
 public class QaRagAnswerGenerator {
 
-    static final String INSUFFICIENT_EVIDENCE_MESSAGE = "제공된 팀 자료에서 확인할 수 없습니다."; // 검색 결과가 없을 때 사용되는 고정 답변
+    public static final String INSUFFICIENT_EVIDENCE_MESSAGE = "제공된 팀 자료에서 확인할 수 없습니다."; // 검색 결과가 없을 때 사용되는 고정 답변
 
     private final KnowledgeRetriever knowledgeRetriever; // Pinecone에서 해당 팀의 관련 자료 검색
     private final QaRagPromptFactory promptFactory; // 질문과 검색된 자료로 RAG 프롬프트 생성

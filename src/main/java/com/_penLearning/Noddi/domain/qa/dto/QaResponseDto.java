@@ -108,6 +108,7 @@ public class QaResponseDto {
         private boolean revised;
         private Long lastRevisedById;
         private String lastRevisedByName;
+        private LocalDateTime lastRevisedAt;
 
         public static AnswerInfo from(QaAnswer answer) {
             return AnswerInfo.builder()
@@ -117,6 +118,7 @@ public class QaResponseDto {
                     .revised(answer.isRevised())
                     .lastRevisedById(answer.isRevised() ? answer.getRevisedBy().getUserId() : null)
                     .lastRevisedByName(answer.isRevised() ? answer.getRevisedBy().getName() : null)
+                    .lastRevisedAt(answer.isRevised() ? answer.getUpdatedAt() : null)
                     .build();
         }
     }

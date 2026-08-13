@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.qa.dto.QaRequestDto;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class QaAnswerUpdateService {
 
     private final QaAnswerRepository qaAnswerRepository;
+    private final QaAnswerSourceRepository qaAnswerSourceRepository;
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
 
@@ -42,6 +44,8 @@ public class QaAnswerUpdateService {
         }
 
         answer.revise(request.getContent(), reviser);
+        // 수정본은 AI 원문과 별개의 최종 답변이므로 기존 AI 인용 출처를 더 이상 노출하지 않는다.
+        qaAnswerSourceRepository.deleteAllByAnswerId(answer.getAnswerId());
         return QaResponseDto.ReviseAnswer.from(answer);
     }
 }

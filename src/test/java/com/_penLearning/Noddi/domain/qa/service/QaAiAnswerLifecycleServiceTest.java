@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -101,6 +102,68 @@ class QaAiAnswerLifecycleServiceTest {
                                 "배포일은 8월 20일입니다."
                         )
                 );
+        verify(question).markAsAnswered();
+    }
+
+    @Test
+    void rejectsAnswerWithoutValidCitationWhenKnowledgeWasRetrieved() {
+        QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
+                qaQuestionRepository,
+                qaAnswerRepository,
+                qaAnswerSourceRepository
+        );
+        List<RetrievedKnowledge> sources = List.of(new RetrievedKnowledge(
+                "knowledge-transcript-20-0",
+                20L,
+                SourceType.TRANSCRIPT,
+                "배포 회의",
+                "배포일은 8월 20일입니다.",
+                0,
+                0.8
+        ));
+
+        when(qaQuestionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(question));
+        when(question.getStatus()).thenReturn(QaStatus.PROCESSING);
+        when(qaAnswerRepository.existsByQuestion(question)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.complete(1L, "8월 20일에 배포합니다.", sources))
+                .isInstanceOf(com._penLearning.Noddi.global.exception.GeneralException.class);
+
+        verify(qaAnswerRepository, never()).save(any(QaAnswer.class));
+        verify(question, never()).markAsAnswered();
+    }
+
+    @Test
+    void permitsFixedInsufficientEvidenceAnswerWithoutCitation() {
+        QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
+                qaQuestionRepository,
+                qaAnswerRepository,
+                qaAnswerSourceRepository
+        );
+        List<RetrievedKnowledge> sources = List.of(new RetrievedKnowledge(
+                "knowledge-transcript-20-0",
+                20L,
+                SourceType.TRANSCRIPT,
+                "배포 회의",
+                "배포일은 8월 20일입니다.",
+                0,
+                0.8
+        ));
+
+        when(qaQuestionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(question));
+        when(question.getStatus()).thenReturn(QaStatus.PROCESSING);
+        when(qaAnswerRepository.existsByQuestion(question)).thenReturn(false);
+        when(qaAnswerRepository.save(any(QaAnswer.class))).thenReturn(answer);
+        when(answer.getAnswerId()).thenReturn(100L);
+
+        Long answerId = service.complete(
+                1L,
+                com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator.INSUFFICIENT_EVIDENCE_MESSAGE,
+                sources
+        );
+
+        assertThat(answerId).isEqualTo(100L);
+        verify(qaAnswerSourceRepository).saveAll(List.of());
         verify(question).markAsAnswered();
     }
 

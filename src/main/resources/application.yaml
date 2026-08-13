@@ -62,6 +62,9 @@ scheduler:
     recovery-cron: "${QA_AI_RECOVERY_CRON:0 */5 * * * *}"
     zone: "${QA_AI_RECOVERY_ZONE:Asia/Seoul}"
     processing-timeout-minutes: ${QA_AI_PROCESSING_TIMEOUT_MINUTES:10}
+  qa-knowledge:
+    recovery-cron: "${QA_KNOWLEDGE_RECOVERY_CRON:0 */5 * * * *}"
+    zone: "${QA_KNOWLEDGE_RECOVERY_ZONE:Asia/Seoul}"
 
 jwt:
   secret: ${JWT_SECRET} #환경변수 설정 필요

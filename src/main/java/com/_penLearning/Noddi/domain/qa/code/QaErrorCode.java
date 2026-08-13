@@ -9,6 +9,12 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum QaErrorCode implements BaseErrorCode {
 
+    INVALID_AI_ANSWER_CITATION(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "QA500_2",
+            "AI 답변에서 유효한 근거를 확인할 수 없습니다."
+    ),
+
     AI_ANSWER_GENERATION_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "QA500_1",

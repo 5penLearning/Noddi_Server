@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
+import com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
@@ -68,9 +69,12 @@ public class QaAiAnswerLifecycleService {
             throw new GeneralException(QaErrorCode.ALREADY_ANSWERED);
         }
 
+        List<Integer> citedSourceIndexes = citedSourceIndexes(content, sources.size());
+        validateCitations(content, sources, citedSourceIndexes);
+
         // AI가 생성한 최초 답변을 저장한다. 이후 담당자 수정 시 현재 내용으로 교체될 수 있다.
         QaAnswer answer = qaAnswerRepository.save(QaAnswer.createAiAnswer(question, content));
-        List<QaAnswerSource> answerSources = citedSourceIndexes(content, sources.size()).stream()
+        List<QaAnswerSource> answerSources = citedSourceIndexes.stream()
                 .map(citationIndex -> {
                     RetrievedKnowledge source = sources.get(citationIndex - 1);
                     return QaAnswerSource.builder()
@@ -123,6 +127,19 @@ public class QaAiAnswerLifecycleService {
             }
         }
         return List.copyOf(indexes);
+    }
+
+    private void validateCitations(
+            String content,
+            List<RetrievedKnowledge> sources,
+            List<Integer> citedSourceIndexes
+    ) {
+        boolean insufficientEvidenceAnswer = QaRagAnswerGenerator.INSUFFICIENT_EVIDENCE_MESSAGE
+                .equals(content.strip());
+
+        if (!sources.isEmpty() && !insufficientEvidenceAnswer && citedSourceIndexes.isEmpty()) {
+            throw new GeneralException(QaErrorCode.INVALID_AI_ANSWER_CITATION);
+        }
     }
 
     private QaQuestion getQuestionWithLock(Long questionId) {
