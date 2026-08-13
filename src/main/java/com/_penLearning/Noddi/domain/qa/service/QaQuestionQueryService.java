@@ -4,8 +4,10 @@ import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.qa.code.QaErrorCode;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.entity.Team;
@@ -20,13 +22,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+/**
+ * Q&A 피드와 질문 상세 조회를 담당한다.
+ * 상세 조회에서는 수정 전 원문 없이 현재 최종 답변과 마지막 수정자만 제공한다.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class QaQueryService {
+public class QaQuestionQueryService {
 
     private final QaQuestionRepository qaQuestionRepository;
     private final QaAnswerRepository qaAnswerRepository;
+    private final QaAnswerSourceRepository qaAnswerSourceRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final ProjectMemberRepository projectMemberRepository;
@@ -59,7 +68,10 @@ public class QaQueryService {
         validateProjectMembership(requesterId, question.getTargetTeam());
 
         QaAnswer answer = qaAnswerRepository.findByQuestion(question).orElse(null);
-        return QaResponseDto.QuestionDetail.of(question, answer);
+        List<QaAnswerSource> sources = answer == null
+                ? List.of()
+                : qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId());
+        return QaResponseDto.QuestionDetail.of(question, answer, sources);
     }
 
     // 공통 프로젝트 권한 검증 로직

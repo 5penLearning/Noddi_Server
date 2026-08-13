@@ -4,8 +4,9 @@ import com._penLearning.Noddi.domain.auth.entity.AuthMember;
 import com._penLearning.Noddi.domain.qa.code.QaApi;
 import com._penLearning.Noddi.domain.qa.dto.QaRequestDto;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
-import com._penLearning.Noddi.domain.qa.service.QaCommandService;
-import com._penLearning.Noddi.domain.qa.service.QaQueryService;
+import com._penLearning.Noddi.domain.qa.service.QaQuestionCommandService;
+import com._penLearning.Noddi.domain.qa.service.QaAnswerUpdateService;
+import com._penLearning.Noddi.domain.qa.service.QaQuestionQueryService;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,14 +15,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequiredArgsConstructor
 public class QaController implements QaApi {
 
-    private final QaCommandService qaCommandService;
-    private final QaQueryService qaQueryService;
+    private final QaQuestionCommandService qaQuestionCommandService;
+    private final QaQuestionQueryService qaQuestionQueryService;
+    private final QaAnswerUpdateService qaAnswerUpdateService;
 
     // 질문 등록
     @Override
@@ -30,7 +30,7 @@ public class QaController implements QaApi {
             @RequestBody @Valid QaRequestDto.CreateQuestion request,
             @AuthenticationPrincipal AuthMember authMember) {
 
-        QaResponseDto.CreateQuestion response = qaCommandService.createQuestion(authMember.getUserId(), request);
+        QaResponseDto.CreateQuestion response = qaQuestionCommandService.createQuestion(authMember.getUserId(), request);
         return ApiResponse.onSuccess("질문이 성공적으로 등록되었습니다.", response);
     }
 
@@ -41,7 +41,7 @@ public class QaController implements QaApi {
             @AuthenticationPrincipal AuthMember authMember,
             Pageable pageable) {
 
-        Page<QaResponseDto.QuestionInfo> response = qaQueryService.getMyQuestions(authMember.getUserId(), pageable);
+        Page<QaResponseDto.QuestionInfo> response = qaQuestionQueryService.getMyQuestions(authMember.getUserId(), pageable);
         return ApiResponse.onSuccess("내 질문 목록 조회에 성공했습니다.", response);
     }
 
@@ -53,7 +53,7 @@ public class QaController implements QaApi {
             @AuthenticationPrincipal AuthMember authMember,
             Pageable pageable) {
 
-        Page<QaResponseDto.QuestionInfo> response = qaQueryService.getTeamQuestions(authMember.getUserId(),teamId, pageable);
+        Page<QaResponseDto.QuestionInfo> response = qaQuestionQueryService.getTeamQuestions(authMember.getUserId(),teamId, pageable);
         return ApiResponse.onSuccess("팀 질문 목록 조회에 성공했습니다.", response);
     }
 
@@ -64,19 +64,23 @@ public class QaController implements QaApi {
             @PathVariable Long questionId,
             @AuthenticationPrincipal AuthMember authMember) {
 
-        QaResponseDto.QuestionDetail response = qaQueryService.getQuestionDetail(authMember.getUserId(), questionId);
+        QaResponseDto.QuestionDetail response = qaQuestionQueryService.getQuestionDetail(authMember.getUserId(), questionId);
         return ApiResponse.onSuccess("질문 상세 조회에 성공했습니다.", response);
     }
 
-    // 직접 답변 등록
+    // AI 답변 수정
     @Override
-    @PostMapping("/api/v1/qa/questions/{questionId}/answers")
-    public ApiResponse<QaResponseDto.CreateAnswer> createAnswer(
-            @PathVariable Long questionId,
-            @RequestBody @Valid QaRequestDto.CreateAnswer request,
+    @PatchMapping("/api/v1/qa/answers/{answerId}")
+    public ApiResponse<QaResponseDto.ReviseAnswer> reviseAnswer(
+            @PathVariable Long answerId,
+            @RequestBody @Valid QaRequestDto.ReviseAnswer request,
             @AuthenticationPrincipal AuthMember authMember) {
-
-        QaResponseDto.CreateAnswer response = qaCommandService.createAnswer(questionId, authMember.getUserId(), request);
-        return ApiResponse.onSuccess("답변이 성공적으로 등록되었습니다.", response);
+        QaResponseDto.ReviseAnswer response = qaAnswerUpdateService.revise(
+                answerId,
+                authMember.getUserId(),
+                request
+        );
+        return ApiResponse.onSuccess("AI 답변이 성공적으로 수정되었습니다.", response);
     }
+
 }

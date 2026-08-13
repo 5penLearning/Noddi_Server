@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
+import com._penLearning.Noddi.domain.qa.rag.indexing.KnowledgeDeletionService;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.dto.TeamRequestDto;
 import com._penLearning.Noddi.domain.team.entity.*;
@@ -31,6 +32,7 @@ public class TeamCommandService {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final TeamInviteExpirationService teamInviteExpirationService;
+    private final KnowledgeDeletionService knowledgeDeletionService;
 
     // 팀 생성 (생성자는 자동으로 LEADER 역할 부여)
     @Transactional
@@ -149,6 +151,9 @@ public class TeamCommandService {
         User requester = getUserOrThrow(requesterId);
 
         validateTeamLeader(team, requester);
+
+        // 팀 소유 자료가 외부 Vector DB에 남지 않도록 색인부터 정리한다.
+        knowledgeDeletionService.deleteTeamKnowledge(teamId);
 
         // 하위 데이터 일괄 삭제 (FK 제약조건 방어)
         teamInviteRepository.deleteAllByTeam(team);

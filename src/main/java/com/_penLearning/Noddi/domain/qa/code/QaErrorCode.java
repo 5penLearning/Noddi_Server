@@ -9,8 +9,19 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum QaErrorCode implements BaseErrorCode {
 
-    INVALID_ANSWER_TYPE(HttpStatus.BAD_REQUEST, "QA400_1", "답변 유형이 올바르지 않습니다."),
-    INVALID_ANSWERER(HttpStatus.BAD_REQUEST, "QA400_2", "답변 유형과 답변자 정보가 일치하지 않습니다."),
+    INVALID_AI_ANSWER_CITATION(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "QA500_2",
+            "AI 답변에서 유효한 근거를 확인할 수 없습니다."
+    ),
+
+    AI_ANSWER_GENERATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "QA500_1",
+            "AI 답변을 생성하지 못했습니다."
+    ),
+
+    INVALID_QUESTION_STATUS(HttpStatus.CONFLICT, "QA409_2", "현재 질문 상태에서는 요청한 작업을 수행할 수 없습니다."),
 
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "QA404_1", "질문을 찾을 수 없습니다."),
     ANSWER_NOT_FOUND(HttpStatus.NOT_FOUND, "QA404_2", "답변을 찾을 수 없습니다."),

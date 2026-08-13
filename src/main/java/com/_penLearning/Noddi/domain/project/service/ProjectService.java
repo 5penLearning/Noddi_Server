@@ -9,6 +9,7 @@ import com._penLearning.Noddi.domain.project.entity.ProjectRole;
 import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
+import com._penLearning.Noddi.domain.qa.rag.indexing.KnowledgeDeletionService;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
@@ -35,6 +36,7 @@ public class ProjectService {
     private final TeamRepository teamRepository;
     private final TeamInviteRepository teamInviteRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final KnowledgeDeletionService knowledgeDeletionService;
 
     // 프로젝트 생성
     @Transactional
@@ -94,6 +96,9 @@ public class ProjectService {
 
         // 1. 요청자가 해당 프로젝트의 LEADER인지 검증
         validateProjectLeader(project, requesterId);
+
+        // 프로젝트 하위 팀 자료가 외부 Vector DB에 남지 않도록 색인부터 정리한다.
+        knowledgeDeletionService.deleteProjectKnowledge(projectId);
 
         // FK 제약조건을 고려해 팀의 하위 데이터부터 삭제한다.
         teamInviteRepository.bulkDeleteByProject(project);
