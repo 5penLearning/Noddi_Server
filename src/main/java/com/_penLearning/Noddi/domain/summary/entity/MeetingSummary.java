@@ -64,8 +64,8 @@ public class MeetingSummary {
     }
 
     public void update(
-            String summaryText,,
-            List<String > decisions,
+            String summaryText,
+            List<String> decisions,
             List<String> issues
     ) {
         this.summaryText = summaryText;

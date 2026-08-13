@@ -57,12 +57,12 @@ public class ActionItem extends BaseEntity {
     }
 
     public void update(
-            String context,
+            String content,
             User assignee,
             LocalDate dueDate,
             ActionItemStatus status
     ) {
-        this.content = context;
+        this.content = content;
         this.assignee = assignee;
         this.dueDate = dueDate;
         this.status = status;
