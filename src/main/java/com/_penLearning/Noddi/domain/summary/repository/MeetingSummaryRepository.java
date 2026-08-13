@@ -9,14 +9,4 @@ import java.util.Optional;
 
 public interface MeetingSummaryRepository extends JpaRepository<MeetingSummary, Long> {
     Optional<MeetingSummary> findByMeeting_MeetingId(Long meetingId);
-
-    @Query("""
-        SELECT ms
-        FROM MeetingSummary ms
-        JOIN FETCH ms.meeting m
-        WHERE m.meetingId = :meetingId
-        """)
-    Optional<MeetingSummary> findByMeetingIdWithMeeting(
-            @Param("meetingId") Long meetingId
-    );
 }
