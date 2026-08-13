@@ -45,6 +45,7 @@ public class Meeting extends BaseEntity {
 
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
+    private LocalDateTime aiProcessingStartedAt;
 
     //webRTC 방 ID LAZY 방식으로 주입(회의 시작 버튼을 눌러야 회의가 열림)
     private String roomName;
@@ -95,6 +96,7 @@ public class Meeting extends BaseEntity {
         }
         //회의 종료와 녹음 준비가 모두 완료되었고 PENDING 상태일 때만 변경
         this.aiStatus = AiStatus.PROCESSING;
+        this.aiProcessingStartedAt = LocalDateTime.now();
         return true;
     }
 
@@ -112,6 +114,7 @@ public class Meeting extends BaseEntity {
             throw new GeneralException(MeetingErrorCode.AI_RETRY_NOT_ALLOWED);
         }
         this.aiStatus = AiStatus.PROCESSING;
+        this.aiProcessingStartedAt = LocalDateTime.now();
     }
 
     public void completeAiProcessing() {

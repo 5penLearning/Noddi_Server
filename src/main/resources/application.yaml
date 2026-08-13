@@ -39,6 +39,12 @@ scheduler:
     cron: "0 0 * * * *"
     zone: Asia/Seoul
     valid-days: 7
+  meeting-ai:
+    # PROCESSING 상태가 고립되었는지 5분마다 검사한다.
+    recovery-cron: "${MEETING_AI_RECOVERY_CRON:0 */5 * * * *}"
+    zone: "${MEETING_AI_RECOVERY_ZONE:Asia/Seoul}"
+    # 정상 처리 시간을 충분히 고려해 30분을 초과한 작업만 FAILED로 복구한다.
+    processing-timeout-minutes: ${MEETING_AI_PROCESSING_TIMEOUT_MINUTES:30}
 
 jwt:
   secret: ${JWT_SECRET} #환경변수 설정 필요
