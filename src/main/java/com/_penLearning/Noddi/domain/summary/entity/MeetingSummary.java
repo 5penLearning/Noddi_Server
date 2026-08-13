@@ -31,8 +31,7 @@ public class MeetingSummary {
     @Column(nullable = false)
     private String summaryText;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String rawTranscript;
 
     // MySQL JSON배열로 저장
