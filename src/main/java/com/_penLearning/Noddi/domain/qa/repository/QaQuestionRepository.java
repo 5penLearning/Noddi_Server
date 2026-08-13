@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.qa.repository;
 
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
+import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.user.entity.User;
 import jakarta.persistence.LockModeType;
@@ -11,6 +12,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface QaQuestionRepository extends JpaRepository<QaQuestion, Long> {
@@ -60,4 +64,9 @@ public interface QaQuestionRepository extends JpaRepository<QaQuestion, Long> {
     // 단건 상세 조회 (팀 정보 포함)
     @Query("SELECT q FROM QaQuestion q JOIN FETCH q.targetTeam WHERE q.questionId = :questionId")
     Optional<QaQuestion> findByIdWithTeam(@Param("questionId") Long questionId);
+
+    List<QaQuestion> findTop100ByStatusInAndUpdatedAtBeforeOrderByUpdatedAtAsc(
+            Collection<QaStatus> statuses,
+            LocalDateTime threshold
+    );
 }

@@ -40,12 +40,16 @@ public class QaQuestion extends BaseEntity {
     @Column(nullable = false)
     private QaStatus status;
 
+    @Column(nullable = false)
+    private int generationAttempts;
+
     @Builder
     public QaQuestion(User questioner, Team targetTeam, String content) {
         this.questioner = questioner;
         this.targetTeam = targetTeam;
         this.content = content;
         this.status = QaStatus.PENDING;
+        this.generationAttempts = 0;
     }
 
     public void startProcessing() {
@@ -54,6 +58,7 @@ public class QaQuestion extends BaseEntity {
             throw new GeneralException(QaErrorCode.INVALID_QUESTION_STATUS);
         }
         this.status = QaStatus.PROCESSING;
+        this.generationAttempts++;
     }
 
     public void markAsAnswered() {
@@ -64,6 +69,10 @@ public class QaQuestion extends BaseEntity {
     public void markAsFailed() {
         validateProcessing();
         this.status = QaStatus.FAILED;
+    }
+
+    public boolean canRetry(int maxAttempts) {
+        return status != QaStatus.ANSWERED && generationAttempts < maxAttempts;
     }
 
     private void validateProcessing() {

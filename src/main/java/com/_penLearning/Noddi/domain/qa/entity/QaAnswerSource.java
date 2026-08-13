@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,7 +25,13 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "QaAnswerSource")
+@Table(
+        name = "QaAnswerSource",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_qa_answer_source_citation",
+                columnNames = {"answerId", "citationIndex"}
+        )
+)
 public class QaAnswerSource extends BaseEntity {
 
     @Id
@@ -34,6 +41,9 @@ public class QaAnswerSource extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "answerId", nullable = false)
     private QaAnswer answer;
+
+    @Column(nullable = false)
+    private int citationIndex;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -51,12 +61,14 @@ public class QaAnswerSource extends BaseEntity {
     @Builder
     public QaAnswerSource(
             QaAnswer answer,
+            int citationIndex,
             SourceType sourceType,
             Long referenceId,
             String sourceTitle,
             String excerpt
     ) {
         this.answer = answer;
+        this.citationIndex = citationIndex;
         this.sourceType = sourceType;
         this.referenceId = referenceId;
         this.sourceTitle = sourceTitle;

@@ -19,6 +19,7 @@ class QaQuestionTest {
 
         question.startProcessing();
         assertThat(question.getStatus()).isEqualTo(QaStatus.PROCESSING);
+        assertThat(question.getGenerationAttempts()).isEqualTo(1);
 
         question.markAsAnswered();
         assertThat(question.getStatus()).isEqualTo(QaStatus.ANSWERED);
@@ -34,6 +35,12 @@ class QaQuestionTest {
 
         question.startProcessing();
         assertThat(question.getStatus()).isEqualTo(QaStatus.PROCESSING);
+        assertThat(question.getGenerationAttempts()).isEqualTo(2);
+        assertThat(question.canRetry(3)).isTrue();
+
+        question.markAsFailed();
+        question.startProcessing();
+        assertThat(question.canRetry(3)).isFalse();
     }
 
     @Test

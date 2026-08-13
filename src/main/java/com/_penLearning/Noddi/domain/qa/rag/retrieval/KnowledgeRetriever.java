@@ -26,7 +26,7 @@ public class KnowledgeRetriever {
     public KnowledgeRetriever(
             VectorStore vectorStore,
             @Value("${qa.rag.top-k:5}") int topK, // 유사도 높은 청크를 몇 개 가져올 것인지
-            @Value("${qa.rag.similarity-threshold:0.0}") double similarityThreshold // 유사도 점수 커트라인
+            @Value("${qa.rag.similarity-threshold:0.2}") double similarityThreshold // 유사도 점수 커트라인
     ) {
         Assert.isTrue(topK > 0, "qa.rag.top-k must be greater than 0");
         Assert.isTrue(

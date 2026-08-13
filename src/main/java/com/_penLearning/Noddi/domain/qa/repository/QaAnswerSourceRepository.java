@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface QaAnswerSourceRepository extends JpaRepository<QaAnswerSource, Long> {
     List<QaAnswerSource> findByAnswer_AnswerId(Long answerId);
+
+    List<QaAnswerSource> findByAnswer_AnswerIdOrderByCitationIndexAsc(Long answerId);
 }

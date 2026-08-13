@@ -2,12 +2,15 @@ package com._penLearning.Noddi.domain.qa.dto;
 
 import com._penLearning.Noddi.domain.qa.entity.AnswerType;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
+import com._penLearning.Noddi.domain.qa.entity.SourceType;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class QaResponseDto {
 
@@ -74,8 +77,13 @@ public class QaResponseDto {
         private Long questionerId;
         private String questionerName;
         private AnswerInfo answer;
+        private List<AnswerSourceInfo> sources;
 
-        public static QuestionDetail of(QaQuestion question, QaAnswer answer) {
+        public static QuestionDetail of(
+                QaQuestion question,
+                QaAnswer answer,
+                List<QaAnswerSource> sources
+        ) {
             return QuestionDetail.builder()
                     .questionId(question.getQuestionId())
                     .content(question.getContent())
@@ -85,6 +93,7 @@ public class QaResponseDto {
                     .questionerId(question.getQuestioner().getUserId())
                     .questionerName(question.getQuestioner().getName())
                     .answer(answer != null ? AnswerInfo.from(answer) : null)
+                    .sources(sources.stream().map(AnswerSourceInfo::from).toList())
                     .build();
         }
     }
@@ -108,6 +117,26 @@ public class QaResponseDto {
                     .revised(answer.isRevised())
                     .lastRevisedById(answer.isRevised() ? answer.getRevisedBy().getUserId() : null)
                     .lastRevisedByName(answer.isRevised() ? answer.getRevisedBy().getName() : null)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class AnswerSourceInfo {
+        private int citationIndex;
+        private SourceType sourceType;
+        private Long referenceId;
+        private String sourceTitle;
+        private String excerpt;
+
+        public static AnswerSourceInfo from(QaAnswerSource source) {
+            return AnswerSourceInfo.builder()
+                    .citationIndex(source.getCitationIndex())
+                    .sourceType(source.getSourceType())
+                    .referenceId(source.getReferenceId())
+                    .sourceTitle(source.getSourceTitle())
+                    .excerpt(source.getExcerpt())
                     .build();
         }
     }

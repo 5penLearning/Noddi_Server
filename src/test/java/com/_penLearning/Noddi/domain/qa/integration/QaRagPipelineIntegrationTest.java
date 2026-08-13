@@ -21,6 +21,7 @@ import com._penLearning.Noddi.domain.team.repository.TeamRepository;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -37,6 +38,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -64,16 +66,22 @@ import static org.assertj.core.api.Assertions.assertThat;
         "qa.rag.similarity-threshold=0.0"
 })
 @ActiveProfiles("test")
+@Tag("external")
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "PINECONE_API_KEY", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "PINECONE_INDEX_NAME", matches = ".+")
 class QaRagPipelineIntegrationTest {
 
-    private static final String TEST_TEAM_ID = "999997";
-    private static final String OTHER_TEAM_ID = "999996";
-    private static final String TEAM_DOCUMENT_ID = "rag-answer-test-team-deploy";
-    private static final String OTHER_TEAM_DOCUMENT_ID = "rag-answer-test-other-team-deploy";
-    private static final String FLOW_DOCUMENT_ID = "rag-answer-flow-test-deploy";
+    private static final String RUN_ID = UUID.randomUUID().toString();
+    private static final String TEST_TEAM_ID = Long.toString(
+            100_000_000L + Math.floorMod(UUID.randomUUID().getMostSignificantBits(), 800_000_000L)
+    );
+    private static final String OTHER_TEAM_ID = Long.toString(
+            1_000_000_000L + Math.floorMod(UUID.randomUUID().getLeastSignificantBits(), 800_000_000L)
+    );
+    private static final String TEAM_DOCUMENT_ID = "rag-answer-test-team-deploy-" + RUN_ID;
+    private static final String OTHER_TEAM_DOCUMENT_ID = "rag-answer-test-other-team-deploy-" + RUN_ID;
+    private static final String FLOW_DOCUMENT_ID = "rag-answer-flow-test-deploy-" + RUN_ID;
     private static final List<String> TEST_DOCUMENT_IDS = List.of(
             TEAM_DOCUMENT_ID,
             OTHER_TEAM_DOCUMENT_ID
@@ -234,6 +242,7 @@ class QaRagPipelineIntegrationTest {
                     .first()
                     .satisfies(source -> {
                         assertThat(source.getSourceType()).isEqualTo(SourceType.TRANSCRIPT);
+                        assertThat(source.getCitationIndex()).isEqualTo(1);
                         assertThat(source.getReferenceId()).isEqualTo(301L);
                         assertThat(source.getSourceTitle()).isEqualTo("QA 종단 테스트 배포 회의");
                         assertThat(source.getExcerpt()).contains("8월 27일");

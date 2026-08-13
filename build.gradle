@@ -45,5 +45,18 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'external'
+	}
+}
+
+tasks.register('externalTest', Test) {
+	description = 'Runs tests that call real OpenAI and Pinecone APIs.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'external'
+	}
+	shouldRunAfter tasks.named('test')
 }
