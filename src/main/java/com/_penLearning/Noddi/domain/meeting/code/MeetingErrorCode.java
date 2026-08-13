@@ -12,8 +12,7 @@ import org.springframework.http.HttpStatus;
 public enum MeetingErrorCode implements BaseErrorCode {
     INVALID_STATUS_FOR_START(HttpStatus.BAD_REQUEST, "MEETING400_1", "예약(SCHEDULED) 상태인 회의만 시작할 수 있습니다."),
     INVALID_STATUS_FOR_END(HttpStatus.BAD_REQUEST, "MEETING400_2", "진행 중(IN_PROGRESS)인 회의만 종료할 수 있습니다."),
-    INVALID_STATUS_FOR_SUMMARY(HttpStatus.BAD_REQUEST, "MEETING400_3", "종료된(ENDED) 회의만 AI 요약을 요청할 수 있습니다."),
-    ALREADY_PROCESSING_SUMMARY(HttpStatus.BAD_REQUEST, "MEETING400_4", "이미 AI 요약이 진행 중이거나 완료된 회의입니다."),
+    AI_RETRY_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "MEETING400_3", "실패(FAILED) 상태인 AI 회의록만 재시도할 수 있습니다."),
     RECORDING_NOT_READY(HttpStatus.BAD_REQUEST, "MEETING400_5", "녹음본 파일이 아직 인코딩 중입니다. 잠시 후 다시 시도해 주세요."),
     // 403 Forbidden: 해당 팀원이 아닌 경우
     NOT_TEAM_MEMBER(HttpStatus.FORBIDDEN, "MEETING403_1", "해당 팀의 팀원만 회의에 접근할 수 있습니다."),

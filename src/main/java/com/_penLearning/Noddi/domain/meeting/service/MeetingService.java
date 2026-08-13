@@ -7,6 +7,7 @@ import com._penLearning.Noddi.domain.meeting.dto.MeetingRequestDto;
 import com._penLearning.Noddi.domain.meeting.dto.MeetingResponseDto;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.meeting.entity.MeetingParticipant;
+import com._penLearning.Noddi.domain.meeting.event.MeetingAiProcessingRequestedEvent;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingParticipantRepository;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
@@ -18,6 +19,7 @@ import com._penLearning.Noddi.global.exception.GeneralException;
 import com._penLearning.Noddi.global.infrastructure.webRtc.WebRtcClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -36,6 +38,7 @@ public class MeetingService {
     private final UserRepository userRepository;
     private final WebRtcClient webRtcClient;
     private final TransactionTemplate transactionTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MeetingResponseDto.Info getMeetingInfo(Long meetingId, Long currentUserId) {
         Meeting meeting = getMeetingOrThrow(meetingId);
@@ -151,7 +154,7 @@ public class MeetingService {
 
             meeting.end();
             log.info("[MeetingService] 회의 종료 완료(DB 업데이트): meetingId={}", meetingId);
-
+            publishAiProcessingEventIfReady(meeting);
             return meeting.getRoomName();
         });
 
@@ -163,42 +166,57 @@ public class MeetingService {
 
     @Transactional
     public void endMeetingByRoomName(String roomName) {
-        Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
+        Meeting meeting = getMeetingByRoomNameWithLockOrThrow(roomName);
         // 이미 종료된 회의가 아닐 때만 종료 처리
         if (meeting.getStatus() == MeetingStatus.IN_PROGRESS) {
             meeting.end();
             log.info("[MeetingService] Webhook에 의해 회의 자동 종료 완료: roomName={}", roomName);
         }
+
+        publishAiProcessingEventIfReady(meeting);
     }
 
     //웹훅 수신: 녹음본 S3 업로드 완료 시 recordingId 갱신
     @Transactional
     public void updateRecordingId(String roomName, String recordingId) {
-        Meeting meeting = getMeetingByRoomNameOrThrow(roomName);
+        Meeting meeting = getMeetingByRoomNameWithLockOrThrow(roomName);
         meeting.updateRecordingId(recordingId);
         log.info("[MeetingService] DB 녹음 ID 업데이트 완료: meetingId={}, recordingId={}", meeting.getMeetingId(), recordingId);
+
+        publishAiProcessingEventIfReady(meeting);
     }
 
     @Transactional
-    public void triggerSummary(Long meetingId, Long currentUserId) {
+    public void retrySummary(Long meetingId, Long currentUserId) {
         Meeting meeting = getMeetingWithLockOrThrow(meetingId);
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(meeting.getTeam(), user);
 
-        //  ENDED(종료된) 회의만 요약 가능
-        if (meeting.getStatus() != MeetingStatus.ENDED) {
-            throw new GeneralException(MeetingErrorCode.INVALID_STATUS_FOR_SUMMARY);
-        }
-        // 이미 PROCESSING(요약 중)이거나 COMPLETED(완료)면 중복 연타 거부
-        if (meeting.getAiStatus() == AiStatus.PROCESSING || meeting.getAiStatus() == AiStatus.COMPLETED) {
-            throw new GeneralException(MeetingErrorCode.ALREADY_PROCESSING_SUMMARY);
-        }
+        //FAILED 상태인지 확인하고 PROCESSING으로 변경
+        meeting.retryAiProcessing();
+        publishAiProcessingEvent(meeting);
+        log.info(
+                "[MeetingService] AI 회의록 재시도 요청: meetingId={}, requestedBy={}",
+                meetingId,
+                currentUserId
+        );
+    }
 
-        if (meeting.getRecordingId() == null) {
-            throw new GeneralException(MeetingErrorCode.RECORDING_NOT_READY);
+    //최초 자동 실행 조건을 확인한 뒤 이벤트 발행
+    private void publishAiProcessingEventIfReady(Meeting meeting) {
+        if (!meeting.tryStartAiProcessing()) {
+            return;
         }
-        meeting.startAiProcessing();
-        log.info("[MeetingService] AI 요약 요청 수신 완료: meetingId={}", meetingId);
+        publishAiProcessingEvent(meeting);
+
+    }
+
+    //processing 상태 회의 AI 처리 이벤트 발행
+    private void publishAiProcessingEvent(Meeting meeting) {
+        eventPublisher.publishEvent(
+                new MeetingAiProcessingRequestedEvent(meeting.getMeetingId())
+        );
+        log.info("[MeetingService] AI 자동 처리 이벤트 발행: meetingId={}", meeting.getMeetingId());
     }
 
     private void validateTeamMember(Team team, User user) {
@@ -229,6 +247,11 @@ public class MeetingService {
 
     private Meeting getMeetingWithLockOrThrow(Long meetingId) {
         return meetingRepository.findByIdWithPessimisticLock(meetingId)
+                .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
+    }
+
+    private Meeting getMeetingByRoomNameWithLockOrThrow(String roomName) {
+        return meetingRepository.findByRoomNameWithPessimisticLock(roomName)
                 .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
     }
 

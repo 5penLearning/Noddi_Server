@@ -6,8 +6,12 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -31,20 +35,30 @@ public class MeetingSummary {
     @Column(nullable = false)
     private String rawTranscript;
 
-    // List<String>을 JSON 직렬화하여 저장
-    private String decisions;
+    // MySQL JSON배열로 저장
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "JSON",nullable = false)
+    private List<String> decisions;
 
-    private String issues;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "JSON",nullable = false)
+    private List<String> issues;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public MeetingSummary(Meeting meeting, String summaryText, String decisions, String issues, String rawTranscript) {
+    public MeetingSummary(Meeting meeting, String summaryText, List<String> decisions, List<String> issues, String rawTranscript) {
         this.meeting = meeting;
         this.summaryText = summaryText;
-        this.decisions = decisions;
-        this.issues = issues;
+        // OpenAI가 null을 반환하더라도 DB에는 빈 JSON 배열을 저장한다.
+        this.decisions = decisions != null
+                ? new ArrayList<>(decisions)
+                : new ArrayList<>();
+
+        this.issues = issues != null
+                ? new ArrayList<>(issues)
+                : new ArrayList<>();
         this.createdAt = LocalDateTime.now();
         this.rawTranscript = rawTranscript;
     }
