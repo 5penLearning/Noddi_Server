@@ -9,6 +9,12 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum QaErrorCode implements BaseErrorCode {
 
+    AI_ANSWER_GENERATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "QA500_1",
+            "AI 답변을 생성하지 못했습니다."
+    ),
+
     INVALID_QUESTION_STATUS(HttpStatus.CONFLICT, "QA409_2", "현재 질문 상태에서는 요청한 작업을 수행할 수 없습니다."),
 
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "QA404_1", "질문을 찾을 수 없습니다."),

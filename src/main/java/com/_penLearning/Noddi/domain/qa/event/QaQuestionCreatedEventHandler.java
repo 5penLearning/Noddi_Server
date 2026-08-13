@@ -54,7 +54,7 @@ public class QaQuestionCreatedEventHandler {
                     .block();
 
             if (generation == null) {
-                throw new IllegalStateException("RAG generation preparation completed without a result");
+                throw new GeneralException(QaErrorCode.AI_ANSWER_GENERATION_FAILED);
             }
 
             String answer = generation.answerChunks()
@@ -62,7 +62,7 @@ public class QaQuestionCreatedEventHandler {
                     .map(chunks -> String.join("", chunks))
                     .filter(content -> !content.isBlank())
                     .switchIfEmpty(reactor.core.publisher.Mono.error(
-                            new IllegalStateException("AI answer stream completed without content")
+                            new GeneralException(QaErrorCode.AI_ANSWER_GENERATION_FAILED)
                     ))
                     .block();
 
