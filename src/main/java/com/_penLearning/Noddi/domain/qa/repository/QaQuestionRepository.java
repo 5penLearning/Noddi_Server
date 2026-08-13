@@ -1,7 +1,6 @@
 package com._penLearning.Noddi.domain.qa.repository;
 
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
-import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.user.entity.User;
 import jakarta.persistence.LockModeType;
@@ -12,7 +11,6 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface QaQuestionRepository extends JpaRepository<QaQuestion, Long> {

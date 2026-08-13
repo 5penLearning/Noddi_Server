@@ -4,6 +4,7 @@ import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.meeting.event.MeetingAiProcessingRequestedEvent;
+import com._penLearning.Noddi.domain.meeting.event.MeetingTranscriptReadyEvent;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.domain.summary.entity.ActionItem;
@@ -21,6 +22,7 @@ import com._penLearning.Noddi.global.infrastructure.webRtc.WebRtcClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -45,6 +47,7 @@ public class MeetingAiProcessingService {
     private final OpenAiClient openAiClient;
     private final MeetingSummaryRepository meetingSummaryRepository;
     private final ActionItemRepository actionItemRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -199,6 +202,8 @@ public class MeetingAiProcessingService {
 
             if (meetingSummaryRepository.findByMeeting_MeetingId(meetingId).isPresent()) {
                 meeting.completeAiProcessing();
+                // 이전 처리에서 색인만 실패했을 수 있으므로 기존 회의록에도 색인 이벤트를 다시 발행한다.
+                eventPublisher.publishEvent(new MeetingTranscriptReadyEvent(meetingId));
                 return;
             }
 
@@ -229,6 +234,9 @@ public class MeetingAiProcessingService {
                     .toList();
             actionItemRepository.saveAll(actionItems);
             meeting.completeAiProcessing();
+
+            // 현재 트랜잭션이 커밋된 뒤 RAG 색인을 시작한다.
+            eventPublisher.publishEvent(new MeetingTranscriptReadyEvent(meetingId));
         });
     }
 

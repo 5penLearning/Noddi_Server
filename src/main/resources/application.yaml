@@ -18,6 +18,19 @@ spring:
       host: localhost
       port: 6379
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+      embedding:
+        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+        dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
+    vectorstore:
+      pinecone:
+        api-key: ${PINECONE_API_KEY}
+        index-name: ${PINECONE_INDEX_NAME}
+
   # Mail (SMTP) 설정
   mail:
     host: smtp.gmail.com
@@ -71,3 +84,8 @@ openai:
     download-connect-timeout-ms: ${OPENAI_AUDIO_DOWNLOAD_CONNECT_TIMEOUT_MS:10000}
     # 연결 이후 파일 데이터 수신이 멈췄을 때 기다리는 최대 시간(ms)이다.
     download-read-timeout-ms: ${OPENAI_AUDIO_DOWNLOAD_READ_TIMEOUT_MS:60000}
+
+qa:
+  rag:
+    top-k: ${QA_RAG_TOP_K:5} # 사용자의 질문과 가장 유사한 청크를 몇 개까지 가져올 것인지 설정
+    similarity-threshold: ${QA_RAG_SIMILARITY_THRESHOLD:0.0} # 유사도 점수 커트라인

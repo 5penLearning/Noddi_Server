@@ -3,6 +3,11 @@ package com._penLearning.Noddi.domain.qa.repository;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.Optional;
 
@@ -12,4 +17,14 @@ public interface QaAnswerRepository extends JpaRepository<QaAnswer, Long> {
 
     // 특정 질문의 답변 조회
     Optional<QaAnswer> findByQuestion(QaQuestion question);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT a
+            FROM QaAnswer a
+            JOIN FETCH a.question q
+            JOIN FETCH q.targetTeam
+            WHERE a.answerId = :answerId
+            """)
+    Optional<QaAnswer> findByIdWithQuestionAndTeamForUpdate(@Param("answerId") Long answerId);
 }
