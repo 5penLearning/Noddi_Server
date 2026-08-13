@@ -15,7 +15,7 @@ public class ActionItemResponseDto {
     public static class Info {
         private Long actionItemId;
         private Long meetingId;
-        private Long meetingTitle;
+        private String meetingTitle;
 
         private String content;
 
@@ -33,7 +33,7 @@ public class ActionItemResponseDto {
             return Info.builder()
                     .actionItemId(actionItem.getActionItemId())
                     .meetingId(actionItem.getMeetingSummary().getMeeting().getMeetingId())
-                    .meetingTitle(actionItem.getMeetingSummary().getMeeting().getMeetingId())
+                    .meetingTitle(actionItem.getMeetingSummary().getMeeting().getTitle())
                     .content(actionItem.getContent())
                     .assigneeUserId(
                             actionItem.getAssignee() == null
