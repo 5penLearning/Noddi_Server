@@ -62,4 +62,15 @@ public class MeetingSummary {
         this.createdAt = LocalDateTime.now();
         this.rawTranscript = rawTranscript;
     }
+
+    public void update(
+            String summaryText,,
+            List<String > decisions,
+            List<String> issues
+    ) {
+        this.summaryText = summaryText;
+        this.decisions = decisions != null ? new ArrayList<>(decisions) : new ArrayList<>();
+        this.issues = issues != null ? new ArrayList<>(issues) : new ArrayList<>();
+
+    }
 }

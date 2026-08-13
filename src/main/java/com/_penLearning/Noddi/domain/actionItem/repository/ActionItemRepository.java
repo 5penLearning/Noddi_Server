@@ -1,6 +1,6 @@
-package com._penLearning.Noddi.domain.summary.repository;
+package com._penLearning.Noddi.domain.actionItem.repository;
 
-import com._penLearning.Noddi.domain.summary.entity.ActionItem;
+import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

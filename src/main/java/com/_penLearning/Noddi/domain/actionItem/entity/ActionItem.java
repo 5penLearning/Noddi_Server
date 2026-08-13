@@ -1,5 +1,7 @@
-package com._penLearning.Noddi.domain.summary.entity;
+package com._penLearning.Noddi.domain.actionItem.entity;
 
+import com._penLearning.Noddi.domain.actionItem.code.ActionItemStatus;
+import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.global.common.BaseEntity;
 import jakarta.persistence.*;
@@ -36,6 +38,10 @@ public class ActionItem extends BaseEntity {
 
     private LocalDate dueDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ActionItemStatus status;
+
     @Builder
     public ActionItem(MeetingSummary meetingSummary, User assignee, String content, Boolean isUncertain, LocalDate dueDate) {
         this.meetingSummary = meetingSummary;
@@ -43,9 +49,24 @@ public class ActionItem extends BaseEntity {
         this.content = content;
         this.isUncertain = isUncertain != null ? isUncertain : false;
         this.dueDate = dueDate;
+        this.status = ActionItemStatus.PENDING;
     }
 
     public void assignTo(User user) {
         this.assignee = user;
+    }
+
+    public void update(
+            String context,
+            User assignee,
+            LocalDate dueDate,
+            ActionItemStatus status
+    ) {
+        this.content = context;
+        this.assignee = assignee;
+        this.dueDate = dueDate;
+        this.status = status;
+        //직접 수정 이후에는 불확실 상태를 해제
+        this.isUncertain = false;
     }
 }
