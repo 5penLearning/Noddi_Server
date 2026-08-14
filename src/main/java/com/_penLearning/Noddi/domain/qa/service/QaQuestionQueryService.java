@@ -103,7 +103,7 @@ public class QaQuestionQueryService {
                     QaAnswer answer = answerByQuestionId.get(question.getQuestionId());
 
                     List<QaAnswerSource> answerSources =
-                            answer == null ? List.of() : sourceByAnswerId.get(answer.getAnswerId());
+                            answer == null ? List.of() : sourceByAnswerId.getOrDefault(answer.getAnswerId(), List.of());
 
                     return QaResponseDto.FeedItem.of(question, answer, answerSources);
                 })

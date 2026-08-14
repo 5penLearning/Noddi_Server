@@ -42,7 +42,7 @@ public interface QaApi {
     ApiResponse<QaResponseDto.Feed> getTeamFeed(
             @Parameter(description = "대상 팀 ID") Long teamId,
             @Parameter(description = "이전 질문 조회를 위한 커서(questionId)", example = "100") Long cursor,
-            @Parameter(description = "한 번에 조회할 질문 수, 1 이상 50 이하", example = "20") int size,
+            @Parameter(description = "한 번에 조회할 질문 수, 1 이상 50 이하 (기본값 20)", example = "20") int size,
             @Parameter(hidden = true) AuthMember authMember
     );
 
