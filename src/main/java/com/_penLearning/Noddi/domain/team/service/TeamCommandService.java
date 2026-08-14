@@ -34,6 +34,7 @@ public class TeamCommandService {
     private final UserRepository userRepository;
     private final TeamInviteExpirationService teamInviteExpirationService;
     private final TeamPageRepository teamPageRepository;
+    private final KnowledgeDeletionService knowledgeDeletionService;
 
     // 팀 생성 (생성자는 자동으로 LEADER 역할 부여)
     @Transactional

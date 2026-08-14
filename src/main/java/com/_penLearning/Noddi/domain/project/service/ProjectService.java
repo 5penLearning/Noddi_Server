@@ -38,6 +38,7 @@ public class ProjectService {
     private final TeamInviteRepository teamInviteRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TeamPageRepository teamPageRepository;
+    private final KnowledgeDeletionService knowledgeDeletionService;
 
     // 프로젝트 생성
     @Transactional
