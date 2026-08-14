@@ -31,8 +31,7 @@ public class MeetingSummary {
     @Column(nullable = false)
     private String summaryText;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String rawTranscript;
 
     // MySQL JSON배열로 저장
@@ -61,5 +60,16 @@ public class MeetingSummary {
                 : new ArrayList<>();
         this.createdAt = LocalDateTime.now();
         this.rawTranscript = rawTranscript;
+    }
+
+    public void update(
+            String summaryText,
+            List<String> decisions,
+            List<String> issues
+    ) {
+        this.summaryText = summaryText;
+        this.decisions = decisions != null ? new ArrayList<>(decisions) : new ArrayList<>();
+        this.issues = issues != null ? new ArrayList<>(issues) : new ArrayList<>();
+
     }
 }

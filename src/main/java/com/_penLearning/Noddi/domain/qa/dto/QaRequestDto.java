@@ -21,8 +21,8 @@ public class QaRequestDto {
 
     @Getter
     @NoArgsConstructor
-    public static class CreateAnswer {
-        @NotBlank(message = "답변 내용을 입력해주세요.")
+    public static class ReviseAnswer {
+        @NotBlank(message = "수정할 답변 내용을 입력해주세요.")
         @Size(max = 1000, message = "답변 내용은 최대 1000자까지 입력 가능합니다.")
         private String content;
     }

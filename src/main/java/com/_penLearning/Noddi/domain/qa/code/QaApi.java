@@ -11,8 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 
-import java.util.List;
-
 @Tag(name = "Q&A API", description = "팀 간 Q&A(질문/답변) 관리 API")
 public interface QaApi {
 
@@ -40,10 +38,11 @@ public interface QaApi {
             @Parameter(description = "질문 ID") @PathVariable Long questionId, @Parameter(hidden = true) AuthMember authMember
     );
 
-    @Operation(summary = "직접 답변 등록", description = "질문에 대한 직접 답변을 등록합니다. (대상 팀 멤버만 작성 가능)")
-    ApiResponse<QaResponseDto.CreateAnswer> createAnswer(
-            @Parameter(description = "질문 ID") @PathVariable Long questionId,
-            QaRequestDto.CreateAnswer request,
+    @Operation(summary = "AI 답변 수정", description = "대상 팀 멤버가 AI 답변을 수정하고 마지막 수정자를 기록합니다.")
+    ApiResponse<QaResponseDto.ReviseAnswer> reviseAnswer(
+            @Parameter(description = "답변 ID") @PathVariable Long answerId,
+            QaRequestDto.ReviseAnswer request,
             @Parameter(hidden = true) AuthMember authMember
     );
+
 }
