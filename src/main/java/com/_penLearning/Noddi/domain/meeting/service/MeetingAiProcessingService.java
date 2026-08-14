@@ -7,9 +7,9 @@ import com._penLearning.Noddi.domain.meeting.event.MeetingAiProcessingRequestedE
 import com._penLearning.Noddi.domain.meeting.event.MeetingTranscriptReadyEvent;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
-import com._penLearning.Noddi.domain.summary.entity.ActionItem;
+import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
-import com._penLearning.Noddi.domain.summary.repository.ActionItemRepository;
+import com._penLearning.Noddi.domain.actionItem.repository.ActionItemRepository;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
@@ -173,7 +173,7 @@ public class MeetingAiProcessingService {
      * AI가 반환한 담당자는 현재 팀원 정보와 다시 비교하고,
      * ID와 이름이 모두 정확히 일치할 때만 실제 사용자와 연결한다.
      */
-    private ActionItem toActionItem(MeetingSummary meetingSummary, OpenAiResponseDto.ActionItem aiActionItem, Map<Long, User> teamUserById) {
+    private ActionItem toActionItem(Meeting meeting, OpenAiResponseDto.ActionItem aiActionItem, Map<Long, User> teamUserById) {
         User matchedUser = teamUserById.get(aiActionItem.assigneeUserId());
         boolean isExactAssignee =
                 matchedUser != null
@@ -187,7 +187,7 @@ public class MeetingAiProcessingService {
         }
 
         return ActionItem.builder()
-                .meetingSummary(meetingSummary)
+                .meeting(meeting)
                 .assignee(assignee)
                 .content(aiActionItem.content())
                 .isUncertain(isUncertain)
@@ -230,7 +230,7 @@ public class MeetingAiProcessingService {
 
             //Ai ActionItem을 검증하면서 엔티티로 변환
             List<ActionItem> actionItems = aiActionItems.stream()
-                    .map(aiActionItem -> toActionItem(meetingSummary, aiActionItem, teamUsersById))
+                    .map(aiActionItem -> toActionItem(meeting, aiActionItem, teamUsersById))
                     .toList();
             actionItemRepository.saveAll(actionItems);
             meeting.completeAiProcessing();
