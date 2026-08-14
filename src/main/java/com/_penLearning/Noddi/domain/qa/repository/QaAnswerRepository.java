@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface QaAnswerRepository extends JpaRepository<QaAnswer, Long> {
@@ -27,4 +29,15 @@ public interface QaAnswerRepository extends JpaRepository<QaAnswer, Long> {
             WHERE a.answerId = :answerId
             """)
     Optional<QaAnswer> findByIdWithQuestionAndTeamForUpdate(@Param("answerId") Long answerId);
+
+    @Query("""
+        SELECT a
+        FROM QaAnswer a
+        JOIN FETCH a.question q
+        LEFT JOIN FETCH a.revisedBy
+        WHERE q IN :questions
+        """)
+    List<QaAnswer> findAllByQuestionsWithReviser(
+            @Param("questions") Collection<QaQuestion> questions
+    );
 }
