@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "01. Auth API", description = "인증/인가 관련 API (회원가입, 로그인 등)")
+@Tag(name = "Auth API", description = "인증/인가 관련 API (회원가입, 로그인 등)")
 public interface AuthApi {
 
     @Operation(summary = "회원가입", description = "신규 사용자를 등록합니다.")

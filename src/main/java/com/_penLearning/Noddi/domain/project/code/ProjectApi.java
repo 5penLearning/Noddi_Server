@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@Tag(name = "프로젝트(Project) API", description = "조직 내 프로젝트 생성 및 조회 관련 API")
+@Tag(name = "Project API", description = "조직 내 프로젝트 생성 및 조회 관련 API")
 public interface ProjectApi {
 
     @Operation(summary = "프로젝트 생성", description = "인증된 사용자가 자신이 속한 조직 내에 새로운 프로젝트를 생성합니다.")

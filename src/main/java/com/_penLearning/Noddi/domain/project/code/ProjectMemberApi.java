@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@Tag(name = "프로젝트 멤버(Project Member) API", description = "프로젝트 멤버 초대, 수락, 권한 변경 및 조회 API")
+@Tag(name = "Project Member API", description = "프로젝트 멤버 초대, 수락, 권한 변경 및 조회 API")
 public interface ProjectMemberApi {
 
     @Operation(summary = "프로젝트 멤버 초대", description = "프로젝트 리더가 특정 유저를 프로젝트에 초대합니다.")
