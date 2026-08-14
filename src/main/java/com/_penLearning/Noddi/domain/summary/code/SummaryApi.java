@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.summary.code;
 
 import com._penLearning.Noddi.domain.auth.entity.AuthMember;
+import com._penLearning.Noddi.domain.summary.dto.SummaryRequestDto;
 import com._penLearning.Noddi.domain.summary.dto.SummaryResponseDto;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,16 @@ public interface SummaryApi {
     })
     ApiResponse<SummaryResponseDto.Detail> getSummary(
             Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(
+            summary = "AI 회의록 수정",
+            description = "AI가 생성한 전체 요약, 결정사항 및 논의 이슈를 수정합니다."
+    )
+    ApiResponse<Void> updateSummary(
+            Long meetingId,
+            SummaryRequestDto.Update request,
             @AuthenticationPrincipal AuthMember authMember
     );
 }
