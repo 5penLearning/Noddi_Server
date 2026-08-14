@@ -1,6 +1,5 @@
 package com._penLearning.Noddi.domain.actionItem.service;
 
-import com._penLearning.Noddi.domain.actionItem.dto.ActionItemRequestDto;
 import com._penLearning.Noddi.domain.actionItem.dto.ActionItemResponseDto;
 import com._penLearning.Noddi.domain.actionItem.repository.ActionItemRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;

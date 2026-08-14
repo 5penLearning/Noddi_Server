@@ -1,7 +1,6 @@
 package com._penLearning.Noddi.domain.actionItem.service;
 
 import com._penLearning.Noddi.domain.actionItem.code.ActionItemErrorCode;
-import com._penLearning.Noddi.domain.actionItem.code.ActionItemStatus;
 import com._penLearning.Noddi.domain.actionItem.dto.ActionItemRequestDto;
 import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import com._penLearning.Noddi.domain.actionItem.repository.ActionItemRepository;
