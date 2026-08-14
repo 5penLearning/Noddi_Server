@@ -12,6 +12,7 @@ import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
+import com._penLearning.Noddi.domain.teamPage.repository.TeamPageRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
@@ -35,6 +36,7 @@ public class ProjectService {
     private final TeamRepository teamRepository;
     private final TeamInviteRepository teamInviteRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamPageRepository teamPageRepository;
 
     // 프로젝트 생성
     @Transactional
@@ -96,6 +98,7 @@ public class ProjectService {
         validateProjectLeader(project, requesterId);
 
         // FK 제약조건을 고려해 팀의 하위 데이터부터 삭제한다.
+        teamPageRepository.bulkDeleteByProject(project);
         teamInviteRepository.bulkDeleteByProject(project);
         teamMemberRepository.bulkDeleteByProject(project);
         teamRepository.bulkDeleteByProject(project);

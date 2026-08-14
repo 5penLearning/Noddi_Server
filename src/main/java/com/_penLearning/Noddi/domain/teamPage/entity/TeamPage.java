@@ -12,6 +12,13 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+@Table(
+        name = "TeamPage",
+        indexes = @Index(
+                name = "IDX_TEAM_PAGE_TEAM_UPDATED_PAGE",
+                columnList = "teamId, updatedAt, pageId"
+        )
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TeamPage extends BaseEntity {
 
