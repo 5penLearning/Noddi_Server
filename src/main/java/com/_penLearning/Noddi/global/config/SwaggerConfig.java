@@ -5,8 +5,11 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.tags.Tag;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
@@ -27,6 +30,15 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Noddi API Document")
                         .version("v0.0.1"))
+                .tags(List.of(
+                        new Tag().name("Auth API").description("인증 API"),
+                        new Tag().name("User API").description("사용자 API"),
+                        new Tag().name("Project API").description("프로젝트 API"),
+                        new Tag().name("Team API").description("팀 API"),
+                        new Tag().name("Team Page API").description("팀 공유 페이지 API"),
+                        new Tag().name("Meeting API").description("회의 API"),
+                        new Tag().name("QA API").description("질의응답 API")
+                ))
                 .addSecurityItem(securityRequirement)
                 .components(components);
     }

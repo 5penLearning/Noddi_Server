@@ -13,7 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
-@Tag(name = "02. Meeting API", description = "회의 예약/시작/종료/AI 요약 관련 API")
+@Tag(name = "Meeting API", description = "회의 예약/시작/종료/AI 요약 관련 API")
 public interface MeetingApi {
 
     @Operation(summary = "회의 단건 조회", description = "회의의 현재 상태, 접속 URL, AI 요약 상태 등 상세 정보를 조회합니다.")
