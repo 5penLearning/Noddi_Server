@@ -57,6 +57,20 @@ public class QaController implements QaApi {
         return ApiResponse.onSuccess("팀 질문 목록 조회에 성공했습니다.", response);
     }
 
+    // 특정 팀의 질문과 답변 피드 조회
+    @Override
+    @GetMapping("/api/v1/teams/{teamId}/qa/feed")
+    public ApiResponse<QaResponseDto.Feed> getTeamFeed(
+            @PathVariable Long teamId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AuthMember authMember
+    ) {
+        QaResponseDto.Feed response = qaQuestionQueryService.getTeamFeed(authMember.getUserId(), teamId, cursor, size);
+
+        return ApiResponse.onSuccess("팀 Q&A 피드 조회에 성공했습니다.", response);
+    }
+
     // 질문 상세 단건 조회
     @Override
     @GetMapping("/api/v1/qa/questions/{questionId}")

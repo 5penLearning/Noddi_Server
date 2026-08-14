@@ -32,6 +32,19 @@ public interface QaApi {
             @Parameter(hidden = true) AuthMember authMember,
             Pageable pageable
     );
+    @Operation(summary = "팀 Q&A 피드 조회",
+            description = """
+                특정 팀에 등록된 질문과 현재 답변을 피드 형태로 조회합니다.
+                cursor를 생략하면 최신 질문부터 조회하며,
+                응답의 nextCursor를 다음 요청의 cursor로 전달하면 이전 질문을 조회할 수 있습니다.
+                """
+    )
+    ApiResponse<QaResponseDto.Feed> getTeamFeed(
+            @Parameter(description = "대상 팀 ID") Long teamId,
+            @Parameter(description = "이전 질문 조회를 위한 커서(questionId)", example = "100") Long cursor,
+            @Parameter(description = "한 번에 조회할 질문 수, 1 이상 50 이하", example = "20") int size,
+            @Parameter(hidden = true) AuthMember authMember
+    );
 
     @Operation(summary = "질문 상세 조회", description = "단건 질문의 상세 내용과 (존재할 경우) 답변을 조회합니다.")
     ApiResponse<QaResponseDto.QuestionDetail> getQuestionDetail(
