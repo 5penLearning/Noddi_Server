@@ -8,23 +8,19 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ActionItemRepository extends JpaRepository<ActionItem, Long> {
-    List<ActionItem> findByMeetingSummary_SummaryId(Long summaryId);
-    List<ActionItem> findByAssignee_UserId(Long userId);
-
     /**
      * 회의록 상세 화면에 표시할 ActionItem을 연관 데이터와 함께 조회
      */
     @Query("""
         SELECT ai
         FROM ActionItem ai
-        JOIN FETCH ai.meetingSummary ms
-        JOIN FETCH ms.meeting m
+        JOIN FETCH ai.meeting m
         LEFT JOIN FETCH ai.assignee
-        WHERE ms.summaryId = :summaryId
+        WHERE m.meetingId = :meetingId
         ORDER BY ai.actionItemId ASC
         """)
-    List<ActionItem> findAllBySummaryIdWithDetails(
-            @Param("summaryId") Long summaryId
+    List<ActionItem> findAllByMeetingIdWithDetails(
+            @Param("meetingId") Long meetingId
     );
 
     /**
@@ -33,8 +29,7 @@ public interface ActionItemRepository extends JpaRepository<ActionItem, Long> {
     @Query("""
         SELECT ai
         FROM ActionItem ai
-        JOIN FETCH ai.meetingSummary ms
-        JOIN FETCH ms.meeting m
+        JOIN FETCH ai.meeting m
         JOIN FETCH ai.assignee a
         WHERE a.userId = :userId
         ORDER BY ai.dueDate ASC, ai.actionItemId ASC

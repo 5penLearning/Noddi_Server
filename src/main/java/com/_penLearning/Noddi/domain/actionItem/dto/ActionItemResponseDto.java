@@ -32,8 +32,8 @@ public class ActionItemResponseDto {
         public static Info from(ActionItem actionItem) {
             return Info.builder()
                     .actionItemId(actionItem.getActionItemId())
-                    .meetingId(actionItem.getMeetingSummary().getMeeting().getMeetingId())
-                    .meetingTitle(actionItem.getMeetingSummary().getMeeting().getTitle())
+                    .meetingId(actionItem.getMeeting().getMeetingId())
+                    .meetingTitle(actionItem.getMeeting().getTitle())
                     .content(actionItem.getContent())
                     .assigneeUserId(
                             actionItem.getAssignee() == null

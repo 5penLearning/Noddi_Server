@@ -44,7 +44,7 @@ public class SummaryQueryService {
         //meeting을 이미 조회해왔기때문에 findByMeeting_MeetingId 메서드로 조회
         MeetingSummary meetingSummary = meetingSummaryRepository.findByMeeting_MeetingId(meetingId)
                 .orElseThrow(() -> new GeneralException(SummaryErrorCode.SUMMARY_NOT_FOUND));
-        List<ActionItem> actionItems = actionItemRepository.findAllBySummaryIdWithDetails(meetingSummary.getSummaryId());
+        List<ActionItem> actionItems = actionItemRepository.findAllByMeetingIdWithDetails(meetingId);
 
         return SummaryResponseDto.Detail.completed(meetingSummary, actionItems);
     }
