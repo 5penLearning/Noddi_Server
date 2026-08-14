@@ -41,6 +41,7 @@ public class SwaggerConfig {
                 new Tag().name("Auth API").description("인증 API"),
                 new Tag().name("User API").description("사용자 API"),
                 new Tag().name("Organization API").description("조직 API"),
+                new Tag().name("Announcement API").description("프로젝트 전체 공지 API"),
                 new Tag().name("Project API").description("프로젝트 API"),
                 new Tag().name("Project Member API").description("프로젝트 멤버 API"),
                 new Tag().name("Team API").description("팀 API"),

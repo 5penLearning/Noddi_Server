@@ -1,5 +1,6 @@
 package com._penLearning.Noddi.domain.project.service;
 
+import com._penLearning.Noddi.domain.announcement.repository.AnnouncementRepository;
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.dto.ProjectRequestDto;
 import com._penLearning.Noddi.domain.project.dto.ProjectResponseDto;
@@ -39,6 +40,7 @@ public class ProjectService {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamPageRepository teamPageRepository;
     private final KnowledgeDeletionService knowledgeDeletionService;
+    private final AnnouncementRepository announcementRepository;
 
     // 프로젝트 생성
     @Transactional
@@ -103,6 +105,7 @@ public class ProjectService {
         knowledgeDeletionService.deleteProjectKnowledge(projectId);
 
         // FK 제약조건을 고려해 팀의 하위 데이터부터 삭제한다.
+        announcementRepository.bulkDeleteByProject(project);
         teamPageRepository.bulkDeleteByProject(project);
         teamInviteRepository.bulkDeleteByProject(project);
         teamMemberRepository.bulkDeleteByProject(project);
