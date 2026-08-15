@@ -6,6 +6,7 @@ import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.entity.SourceType;
+import com._penLearning.Noddi.domain.team.entity.Team;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -139,6 +140,110 @@ public class QaResponseDto {
                     .referenceId(source.getReferenceId())
                     .sourceTitle(source.getSourceTitle())
                     .excerpt(source.getExcerpt())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class Feed {
+        private Long projectId;
+        private String projectName;
+
+        private Long teamId;
+        private String teamName;
+
+        private List<FeedItem> items;
+
+        private Long nextCursor;
+        private boolean hasNext;
+
+        public static Feed of(Team team, List<FeedItem> items, Long nextCursor, boolean hasNext) {
+            return Feed.builder()
+                    .projectId(team.getProject().getProjectId())
+                    .projectName(team.getProject().getName())
+                    .teamId(team.getTeamId())
+                    .teamName(team.getName())
+                    .items(items)
+                    .nextCursor(nextCursor)
+                    .hasNext(hasNext)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class FeedItem {
+        private FeedQuestion question;
+        private QaStatus status;
+        private FeedAnswer answer;
+
+        public static FeedItem of(QaQuestion question, QaAnswer answer, List<QaAnswerSource> sources) {
+            return FeedItem.builder()
+                    .question(FeedQuestion.from(question))
+                    .status(question.getStatus())
+                    .answer(
+                            answer != null ? FeedAnswer.from(answer, sources) : null
+                    )
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class FeedQuestion {
+        private Long questionId;
+
+        private Long questionerId;
+        private String questionerName;
+
+        private String content;
+        private LocalDateTime createdAt;
+        //현재 소속 부서 + 직함 엔티티가 없어서 일단 빼고 이름만 반환
+
+        public static FeedQuestion from(QaQuestion question){
+            return FeedQuestion.builder()
+                    .questionId(question.getQuestionId())
+                    .questionerId(question.getQuestioner().getUserId())
+                    .questionerName(question.getQuestioner().getName())
+                    .content(question.getContent())
+                    .createdAt(question.getCreatedAt())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class FeedAnswer {
+        private Long answerId;
+        private String content;
+        private AnswerType answerType;
+
+        private boolean revised;
+
+        private Long lastRevisedById;
+        private String lastRevisedByName;
+
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+
+        private List<AnswerSourceInfo> sources;
+
+        public static FeedAnswer from(QaAnswer answer, List<QaAnswerSource> sources) {
+            return FeedAnswer.builder()
+                    .answerId(answer.getAnswerId())
+                    .content(answer.getContent())
+                    .answerType(answer.getAnswerType())
+                    .revised(answer.isRevised())
+                    .lastRevisedById(
+                            answer.isRevised() ? answer.getRevisedBy().getUserId() : null
+                    )
+                    .lastRevisedByName(
+                            answer.isRevised() ? answer.getRevisedBy().getName() : null
+                    )
+                    .createdAt(answer.getCreatedAt())
+                    .updatedAt(answer.getUpdatedAt())
+                    .sources(sources.stream().map(AnswerSourceInfo::from).toList())
                     .build();
         }
     }

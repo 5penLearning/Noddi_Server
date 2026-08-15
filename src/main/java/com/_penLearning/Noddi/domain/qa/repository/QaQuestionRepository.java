@@ -69,4 +69,18 @@ public interface QaQuestionRepository extends JpaRepository<QaQuestion, Long> {
             Collection<QaStatus> statuses,
             LocalDateTime threshold
     );
+
+    @Query("""
+        SELECT q
+        FROM QaQuestion q
+        JOIN FETCH q.questioner
+        WHERE q.targetTeam = :targetTeam
+          AND (:cursor IS NULL OR q.questionId < :cursor)
+        ORDER BY q.questionId DESC
+        """)
+    List<QaQuestion> findFeedByTargetTeam(
+            @Param("targetTeam") Team targetTeam,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
 }
