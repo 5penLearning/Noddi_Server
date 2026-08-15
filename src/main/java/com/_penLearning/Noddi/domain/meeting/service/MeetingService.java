@@ -23,6 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -84,9 +85,13 @@ public class MeetingService {
         User user = getUserOrThrow(currentUserId);
         validateTeamMember(team, user);
 
+        String agenda = StringUtils.hasText(request.getAgenda()) ? request.getAgenda().trim() : null;
         Meeting meeting = Meeting.builder()
                 .team(team)
                 .title(request.getTitle())
+                .agenda(agenda)
+                .scheduledStartAt(request.getScheduledStartAt())
+                .scheduledEndAt(request.getScheduledEndAt())
                 .createdBy(user)
                 .build();
         Meeting savedMeeting = meetingRepository.save(meeting);

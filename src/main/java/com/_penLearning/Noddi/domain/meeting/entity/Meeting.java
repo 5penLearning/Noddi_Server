@@ -31,6 +31,12 @@ public class Meeting extends BaseEntity {
     @Column(nullable = false)
     private String title;
 
+    @Column(length = 200)
+    private String agenda;
+
+    private LocalDateTime scheduledStartAt;
+    private LocalDateTime scheduledEndAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "createdBy", nullable = false)
     private User createdBy;
@@ -52,12 +58,15 @@ public class Meeting extends BaseEntity {
     private String recordingId;
 
     @Builder
-    public Meeting(Team team, String title, User createdBy) {
+    public Meeting(Team team, String title, String agenda, LocalDateTime scheduledStartAt, LocalDateTime scheduledEndAt, User createdBy) {
         this.team = team;
         this.title = title;
         this.createdBy = createdBy;
         this.status = MeetingStatus.SCHEDULED;
         this.aiStatus = AiStatus.PENDING;
+        this.agenda = agenda;
+        this.scheduledStartAt = scheduledStartAt;
+        this.scheduledEndAt = scheduledEndAt;
     }
 
     public void start(String roomName) {

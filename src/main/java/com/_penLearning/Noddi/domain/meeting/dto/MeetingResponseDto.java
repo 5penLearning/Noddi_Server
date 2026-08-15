@@ -18,7 +18,12 @@ public class MeetingResponseDto {
     public static class Info {
         private Long meetingId;
         private Long teamId;
+
         private String title;
+        private String agenda;
+        private LocalDateTime scheduledStartAt;
+        private LocalDateTime scheduledEndAt;
+
         private MeetingStatus status;
         private AiStatus aiStatus;
         private String roomName;
@@ -33,6 +38,9 @@ public class MeetingResponseDto {
             return Info.builder()
                     .meetingId(meeting.getMeetingId())
                     .teamId(meeting.getTeam().getTeamId())
+                    .agenda(meeting.getAgenda())
+                    .scheduledStartAt(meeting.getScheduledStartAt())
+                    .scheduledEndAt(meeting.getScheduledEndAt())
                     .title(meeting.getTitle())
                     .status(meeting.getStatus())
                     .aiStatus(meeting.getAiStatus())
