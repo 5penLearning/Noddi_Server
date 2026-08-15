@@ -34,6 +34,14 @@ public interface TeamPageRepository extends JpaRepository<TeamPage, Long> {
 
     Optional<TeamPage> findByPageIdAndTeam(Long pageId, Team team);
 
+    @Query("""
+            SELECT page
+            FROM TeamPage page
+            JOIN FETCH page.team
+            WHERE page.pageId = :pageId
+            """)
+    Optional<TeamPage> findByPageIdWithTeam(@Param("pageId") Long pageId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM TeamPage page WHERE page.team = :team")
     void bulkDeleteByTeam(@Param("team") Team team);
