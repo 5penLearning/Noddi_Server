@@ -20,7 +20,9 @@ import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AnnouncementService {
+
+    private static final int MAX_PAGE_SIZE = 50;
+    private static final Sort LATEST_ANNOUNCEMENT_SORT = Sort.by(
+            Sort.Order.desc("updatedAt"),
+            Sort.Order.desc("announcementId")
+    );
 
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
@@ -107,7 +115,13 @@ public class AnnouncementService {
 
         validateProjectMember(project, requester);
 
-        return announcementRepository.findAllByProjectWithTeam(project, pageable)
+        Pageable fixedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), MAX_PAGE_SIZE),
+                LATEST_ANNOUNCEMENT_SORT
+        );
+
+        return announcementRepository.findAllByProjectWithTeam(project, fixedPageable)
                 .map(AnnouncementResponseDto.Summary::from);
     }
 

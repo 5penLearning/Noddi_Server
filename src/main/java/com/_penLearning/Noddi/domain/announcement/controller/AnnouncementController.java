@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +35,7 @@ public class AnnouncementController implements AnnouncementApi {
     }
 
     @Override
-    @PatchMapping("/announcements/{announcementId}")
+    @PutMapping("/announcements/{announcementId}")
     public ApiResponse<AnnouncementResponseDto.Result> updateAnnouncement(
             @PathVariable Long projectId,
             @PathVariable Long announcementId,
@@ -63,12 +62,7 @@ public class AnnouncementController implements AnnouncementApi {
     public ApiResponse<Page<AnnouncementResponseDto.Summary>> getAnnouncements(
             @PathVariable Long projectId,
             @AuthenticationPrincipal AuthMember authMember,
-            @PageableDefault(
-                    size = 10,
-                    sort = {"updatedAt", "announcementId"},
-                    direction = Sort.Direction.DESC
-            )
-            Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable
     ){
         Page<AnnouncementResponseDto.Summary> response = announcementService.getAnnouncements(projectId, authMember.getUserId(), pageable);
         return ApiResponse.onSuccess("공지사항 목록 조회에 성공하였습니다.", response);

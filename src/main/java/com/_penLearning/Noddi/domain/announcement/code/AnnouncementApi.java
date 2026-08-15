@@ -31,7 +31,7 @@ public interface AnnouncementApi {
 
     @Operation(
             summary = "공지 수정",
-            description = "공지 작성자가 공지의 제목과 본문을 수정합니다."
+            description = "공지 작성자가 공지의 제목과 본문 전체를 수정합니다."
     )
     ApiResponse<AnnouncementResponseDto.Result> updateAnnouncement(
             @Parameter(description = "프로젝트 ID") @PathVariable Long projectId,
@@ -52,7 +52,7 @@ public interface AnnouncementApi {
 
     @Operation(
             summary = "프로젝트 전체 공지 목록 조회",
-            description = "프로젝트 멤버가 프로젝트 내 모든 팀의 공지를 페이징하여 조회합니다."
+            description = "프로젝트 멤버가 프로젝트 내 모든 팀의 공지를 최근 수정 순으로 페이징하여 조회합니다."
     )
     ApiResponse<Page<AnnouncementResponseDto.Summary>> getAnnouncements(
             @Parameter(description = "프로젝트 ID") @PathVariable Long projectId,
