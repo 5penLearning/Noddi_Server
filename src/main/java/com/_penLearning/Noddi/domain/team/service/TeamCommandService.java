@@ -1,5 +1,6 @@
 package com._penLearning.Noddi.domain.team.service;
 
+import com._penLearning.Noddi.domain.announcement.repository.AnnouncementRepository;
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
@@ -35,6 +36,7 @@ public class TeamCommandService {
     private final TeamInviteExpirationService teamInviteExpirationService;
     private final TeamPageRepository teamPageRepository;
     private final KnowledgeDeletionService knowledgeDeletionService;
+    private final AnnouncementRepository announcementRepository;
 
     // 팀 생성 (생성자는 자동으로 LEADER 역할 부여)
     @Transactional
@@ -158,6 +160,7 @@ public class TeamCommandService {
         knowledgeDeletionService.deleteTeamKnowledge(teamId);
 
         // 하위 데이터 일괄 삭제 (FK 제약조건 방어)
+        announcementRepository.bulkDeleteByTeam(team);
         teamPageRepository.bulkDeleteByTeam(team);
         teamInviteRepository.deleteAllByTeam(team);
         teamMemberRepository.deleteAllByTeam(team);
