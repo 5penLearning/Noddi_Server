@@ -7,9 +7,13 @@ import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -38,6 +42,17 @@ public interface ProjectMemberApi {
     @Operation(summary = "프로젝트 멤버 조회", description = "해당 프로젝트에 가입된 멤버 목록을 조회합니다.")
     ApiResponse<List<ProjectMemberResponseDto.MemberInfo>> getMembers(
             @PathVariable Long projectId,
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(
+            summary = "프로젝트 초대 가능 조직원 조회",
+            description = "프로젝트 리더가 같은 조직에서 프로젝트에 가입하지 않았고 대기 중 초대도 없는 사용자를 이름 또는 이메일로 검색합니다."
+    )
+    ApiResponse<Page<ProjectMemberResponseDto.InviteCandidate>> getInvitableOrganizationMembers(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String keyword,
+            @ParameterObject Pageable pageable,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthMember authMember
     );
 

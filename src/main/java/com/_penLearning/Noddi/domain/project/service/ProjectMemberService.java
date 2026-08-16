@@ -12,6 +12,9 @@ import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +52,7 @@ public class ProjectMemberService {
             throw new GeneralException(ProjectErrorCode.ALREADY_PROJECT_MEMBER);
         }
 
-        // 2. 중복 초대 방어
+        // 중복 초대 방어
         if (projectInviteRepository.existsByProjectAndInviteeAndStatus(project, targetUser, InviteStatus.PENDING)) {
             throw new GeneralException(ProjectErrorCode.ALREADY_INVITED_USER);
         }
@@ -124,6 +127,33 @@ public class ProjectMemberService {
         return projectMemberRepository.findAllByProjectWithUser(project).stream()
                 .map(ProjectMemberResponseDto.MemberInfo::from)
                 .toList();
+    }
+
+    // 리더가 초대할 수 있는 조직원을 이름 또는 이메일로 검색해 페이지 단위로 조회한다.
+    public Page<ProjectMemberResponseDto.InviteCandidate> getInvitableOrganizationMembers(
+            Long projectId,
+            Long requesterId,
+            String keyword,
+            Pageable pageable
+    ) {
+        Project project = getProjectOrThrow(projectId);
+        validateProjectLeader(project, requesterId);
+
+        // 과도한 단건 요청을 막고, 정렬은 Repository 쿼리에서 이름/ID 순으로 고정한다.
+        Pageable limitedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), 50)
+        );
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.strip();
+
+        return projectInviteRepository.findInvitableUsers(
+                        project.getOrganization(),
+                        project,
+                        InviteStatus.PENDING,
+                        normalizedKeyword,
+                        limitedPageable
+                )
+                .map(ProjectMemberResponseDto.InviteCandidate::from);
     }
 
     // 멤버 권한 변경 (리더만 가능)
