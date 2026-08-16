@@ -8,6 +8,9 @@ import com._penLearning.Noddi.domain.project.service.ProjectMemberService;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,6 +68,25 @@ public class ProjectMemberController implements ProjectMemberApi {
                 projectMemberService.getMembers(projectId, authMember.getUserId());
         // 2. 일관된 응답 포맷(ApiResponse)으로 감싸서 리턴
         return ApiResponse.onSuccess("프로젝트 멤버 목록 조회에 성공했습니다.", response);
+    }
+
+    @Override
+    @GetMapping("/{projectId}/invitable-organization-members")
+    public ApiResponse<Page<ProjectMemberResponseDto.InviteCandidate>> getInvitableOrganizationMembers(
+            @PathVariable Long projectId,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal AuthMember authMember
+    ) {
+        Page<ProjectMemberResponseDto.InviteCandidate> response =
+                projectMemberService.getInvitableOrganizationMembers(
+                        projectId,
+                        authMember.getUserId(),
+                        keyword,
+                        pageable
+                );
+
+        return ApiResponse.onSuccess("프로젝트 초대 가능 조직원 목록 조회에 성공했습니다.", response);
     }
 
     @Override
