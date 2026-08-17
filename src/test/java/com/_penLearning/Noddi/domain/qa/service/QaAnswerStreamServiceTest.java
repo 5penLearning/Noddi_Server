@@ -43,12 +43,12 @@ class QaAnswerStreamServiceTest {
     @Test
     void sendsConnectedChunksAndCompletedEventInOrder() throws Exception {
         // Given: AI 답변 생성이 시작된 질문을 사용자가 먼저 구독한다.
-        service.start(101L);
+        service.start(101L, 1);
         MvcResult subscription = openProcessingStream();
 
         // When: AI가 두 조각을 생성하고 최종 답변을 DB에 저장했다고 알린다.
-        service.publishChunk(101L, "출시일은 ");
-        service.publishChunk(101L, "9월 5일입니다.");
+        service.publishChunk(101L, 1, "출시일은 ");
+        service.publishChunk(101L, 1, "9월 5일입니다.");
         service.publishCompleted(
                 101L,
                 201L,
@@ -84,12 +84,12 @@ class QaAnswerStreamServiceTest {
     @Test
     void sendsSnapshotBeforeNewChunksToLateSubscriber() throws Exception {
         // Given: 구독자가 접속하기 전에 AI가 답변 일부를 이미 생성했다.
-        service.start(101L);
-        service.publishChunk(101L, "이미 생성된 답변");
+        service.start(101L, 1);
+        service.publishChunk(101L, 1, "이미 생성된 답변");
 
         // When: 사용자가 뒤늦게 구독한 뒤 새로운 조각과 완료 이벤트가 발생한다.
         MvcResult subscription = openProcessingStream();
-        service.publishChunk(101L, " 뒤의 조각");
+        service.publishChunk(101L, 1, " 뒤의 조각");
         service.publishCompleted(
                 101L,
                 201L,
@@ -115,9 +115,37 @@ class QaAnswerStreamServiceTest {
     }
 
     @Test
+    void ignoresLateChunkFromPreviousAttemptAfterRetryStarts() throws Exception {
+        service.start(101L, 1);
+        MvcResult subscription = openProcessingStream();
+        service.publishChunk(101L, 1, "1차 생성 조각");
+
+        service.publishRetrying(101L, 1);
+        service.start(101L, 2);
+
+        // 2차 시도가 시작된 뒤 도착한 1차 조각은 새 답변에 섞이면 안 된다.
+        service.publishChunk(101L, 1, "뒤늦은 1차 조각");
+        service.publishChunk(101L, 2, "2차 생성 조각");
+        service.publishCompleted(101L, 201L, "2차 생성 조각");
+
+        mockMvc.perform(asyncDispatch(subscription))
+                .andExpect(status().isOk());
+
+        String body = subscription.getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(body)
+                .contains("\"delta\":\"1차 생성 조각\"")
+                .contains("event:retrying")
+                .contains("\"delta\":\"2차 생성 조각\"")
+                .contains("\"attempt\":2")
+                .doesNotContain("뒤늦은 1차 조각");
+    }
+
+    @Test
     void sendsFailedEventAndClosesStream() throws Exception {
         // Given: 답변 생성 중인 질문을 사용자가 구독한다.
-        service.start(101L);
+        service.start(101L, 1);
         MvcResult subscription = openProcessingStream();
 
         // When: AI 답변 생성이 실패한다.
@@ -173,5 +201,33 @@ class QaAnswerStreamServiceTest {
                     null
             );
         }
+    }
+
+    @Test
+    void hidesFinalAiFailureAndSendsTeamAnswerPendingEvent() throws Exception {
+        // Given: 질문자가 AI 답변 생성 스트림을 구독하고 있다.
+        service.start(101L, 3);
+        MvcResult subscription = openProcessingStream();
+
+        // When: AI 생성이 최종 실패하여 담당 팀의 직접 답변을 기다리게 된다.
+        service.publishTeamAnswerPending(
+                101L,
+                201L,
+                "담당 팀원이 질문을 확인하고 있습니다. 답변이 등록되면 알려드리겠습니다."
+        );
+
+        mockMvc.perform(asyncDispatch(subscription))
+                .andExpect(status().isOk());
+
+        String body = subscription.getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        // Then: 질문자에게 AI 실패 및 수동 답변 필요 상태를 노출하지 않는다.
+        assertThat(body)
+                .contains("event:team_answer_pending")
+                .contains("\"status\":\"TEAM_ANSWER_PENDING\"")
+                .contains("담당 팀원이 질문을 확인하고 있습니다.")
+                .doesNotContain("event:manual_required")
+                .doesNotContain("\"status\":\"MANUAL_REQUIRED\"");
     }
 }

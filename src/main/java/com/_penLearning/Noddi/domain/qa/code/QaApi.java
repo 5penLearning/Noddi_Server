@@ -52,7 +52,10 @@ public interface QaApi {
             @Parameter(description = "질문 ID") @PathVariable Long questionId, @Parameter(hidden = true) AuthMember authMember
     );
 
-    @Operation(summary = "AI 답변 수정", description = "대상 팀 멤버가 AI 답변을 수정하고 마지막 수정자를 기록합니다.")
+    @Operation(
+            summary = "답변 작성 및 수정",
+            description = "대상 팀 멤버가 AI 답변을 수정하거나 AI 최종 실패 질문에 직접 답변합니다."
+    )
     ApiResponse<QaResponseDto.ReviseAnswer> reviseAnswer(
             @Parameter(description = "답변 ID") @PathVariable Long answerId,
             QaRequestDto.ReviseAnswer request,
@@ -81,10 +84,8 @@ public interface QaApi {
             description = """
                 특정 답변의 AI 최초 원문과 담당자 수정본을 조회합니다.
                 수정 이력은 versionNumber 오름차순으로 반환됩니다.
-                
                 같은 프로젝트의 구성원은 모든 버전의 답변 내용,
                 수정자, 생성 시간을 조회할 수 있습니다.
-                
                 AI 최초 답변의 회의록 및 팀 페이지 출처는
                 질문 대상 팀 구성원에게만 제공됩니다.
                 """

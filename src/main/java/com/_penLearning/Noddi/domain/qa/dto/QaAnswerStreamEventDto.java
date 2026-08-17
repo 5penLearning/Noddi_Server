@@ -1,6 +1,5 @@
 package com._penLearning.Noddi.domain.qa.dto;
 
-import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
@@ -10,9 +9,10 @@ public record QaAnswerStreamEventDto(
         EventType type,
         Long questionId,
         Long answerId,
-        QaStatus status,
+        QaResponseStatus status,
         String content,
-        String delta
+        String delta,
+        Integer attempt
 ) {
 
     /**
@@ -23,13 +23,14 @@ public record QaAnswerStreamEventDto(
      */
     public static QaAnswerStreamEventDto connected(
             Long questionId,
-            QaStatus status
+            QaResponseStatus status
     ) {
         return new QaAnswerStreamEventDto(
                 EventType.CONNECTED,
                 questionId,
                 null,
                 status,
+                null,
                 null,
                 null
         );
@@ -45,15 +46,17 @@ public record QaAnswerStreamEventDto(
      */
     public static QaAnswerStreamEventDto snapshot(
             Long questionId,
-            String content
+            String content,
+            int attempt
     ) {
         return new QaAnswerStreamEventDto(
                 EventType.SNAPSHOT,
                 questionId,
                 null,
-                QaStatus.PROCESSING,
+                QaResponseStatus.PROCESSING,
                 content,
-                null
+                null,
+                attempt
         );
     }
 
@@ -64,15 +67,17 @@ public record QaAnswerStreamEventDto(
      */
     public static QaAnswerStreamEventDto chunk(
             Long questionId,
-            String delta
+            String delta,
+            int attempt
     ) {
         return new QaAnswerStreamEventDto(
                 EventType.CHUNK,
                 questionId,
                 null,
-                QaStatus.PROCESSING,
+                QaResponseStatus.PROCESSING,
                 null,
-                delta
+                delta,
+                attempt
         );
     }
 
@@ -92,8 +97,9 @@ public record QaAnswerStreamEventDto(
                 EventType.COMPLETED,
                 questionId,
                 answerId,
-                QaStatus.ANSWERED,
+                QaResponseStatus.ANSWERED,
                 content,
+                null,
                 null
         );
     }
@@ -108,7 +114,36 @@ public record QaAnswerStreamEventDto(
                 EventType.FAILED,
                 questionId,
                 null,
-                QaStatus.FAILED,
+                QaResponseStatus.FAILED,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static QaAnswerStreamEventDto retrying(Long questionId, int attempt) {
+        return new QaAnswerStreamEventDto(
+                EventType.RETRYING,
+                questionId,
+                null,
+                QaResponseStatus.FAILED,
+                null,
+                null,
+                attempt
+        );
+    }
+
+    public static QaAnswerStreamEventDto teamAnswerPending(
+            Long questionId,
+            Long answerId,
+            String content
+    ) {
+        return new QaAnswerStreamEventDto(
+                EventType.TEAM_ANSWER_PENDING,
+                questionId,
+                answerId,
+                QaResponseStatus.TEAM_ANSWER_PENDING,
+                content,
                 null,
                 null
         );
@@ -133,6 +168,12 @@ public record QaAnswerStreamEventDto(
 
         // 최종 답변 저장 완료
         COMPLETED("completed"),
+
+        // AI 생성 실패 후 자동 재시도 대기
+        RETRYING("retrying"),
+
+        // 담당 팀의 직접 답변 대기
+        TEAM_ANSWER_PENDING("team_answer_pending"),
 
         // 답변 생성 실패
         FAILED("failed");

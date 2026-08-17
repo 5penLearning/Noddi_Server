@@ -285,7 +285,7 @@ class QaControllerTest {
 
         QaResponseDto.FeedItem item = QaResponseDto.FeedItem.builder()
                 .question(question)
-                .status(QaStatus.ANSWERED)
+                .status(com._penLearning.Noddi.domain.qa.dto.QaResponseStatus.ANSWERED)
                 .answer(answer)
                 .build();
 

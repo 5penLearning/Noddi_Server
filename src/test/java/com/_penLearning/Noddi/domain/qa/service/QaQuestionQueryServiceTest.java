@@ -3,6 +3,7 @@ package com._penLearning.Noddi.domain.qa.service;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
+import com._penLearning.Noddi.domain.qa.dto.QaResponseStatus;
 import com._penLearning.Noddi.domain.qa.entity.AnswerType;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
@@ -13,8 +14,8 @@ import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
-import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
@@ -178,7 +179,7 @@ class QaQuestionQueryServiceTest {
         // Repository는 최신순(103 -> 102)으로 반환하지만, 채팅 화면에는 과거 질문부터 보이도록
         // 서비스가 응답 순서를 102 -> 103으로 뒤집었는지 확인한다.
         assertThat(firstItem.getQuestion().getQuestionId()).isEqualTo(102L);
-        assertThat(firstItem.getStatus()).isEqualTo(QaStatus.ANSWERED);
+        assertThat(firstItem.getStatus()).isEqualTo(QaResponseStatus.ANSWERED);
         assertThat(firstItem.getAnswer()).isNotNull();
         assertThat(firstItem.getAnswer().getAnswerId()).isEqualTo(201L);
         assertThat(firstItem.getAnswer().getContent()).isEqualTo("출시일은 9월 5일입니다.");
@@ -187,7 +188,7 @@ class QaQuestionQueryServiceTest {
                 .isEqualTo("8월 기획 회의");
 
         assertThat(secondItem.getQuestion().getQuestionId()).isEqualTo(103L);
-        assertThat(secondItem.getStatus()).isEqualTo(QaStatus.PROCESSING);
+        assertThat(secondItem.getStatus()).isEqualTo(QaResponseStatus.PROCESSING);
         assertThat(secondItem.getAnswer()).isNull();
 
         // hasNext를 별도 count 쿼리 없이 판단하기 위해 요청 크기보다 1개 더 조회했는지 확인한다.
@@ -255,6 +256,31 @@ class QaQuestionQueryServiceTest {
         assertThat(response.getItems()).hasSize(1);
         assertThat(response.getItems().get(0).getAnswer()).isNotNull();
         assertThat(response.getItems().get(0).getAnswer().getSources()).isEmpty();
+    }
+
+    @Test
+    void hidesManualRequiredStatusFromRequesterOutsideTargetTeam() {
+        QaQuestion question = mock(QaQuestion.class);
+        User questioner = mock(User.class);
+
+        allowProjectAccess();
+        when(teamMemberRepository.existsByTeamAndUser(targetTeam, requester)).thenReturn(false);
+        when(question.getQuestionId()).thenReturn(101L);
+        when(question.getQuestioner()).thenReturn(questioner);
+        when(question.getStatus()).thenReturn(QaStatus.MANUAL_REQUIRED);
+        when(question.getContent()).thenReturn("배포 일정을 알려주세요.");
+        when(questioner.getUserId()).thenReturn(5L);
+        when(questioner.getName()).thenReturn("질문자");
+        when(qaQuestionRepository.findFeedByTargetTeam(eq(targetTeam), isNull(), any(Pageable.class)))
+                .thenReturn(List.of(question));
+        when(qaAnswerRepository.findAllByQuestionsWithReviser(anyCollection())).thenReturn(List.of());
+
+        QaResponseDto.Feed response = service.getTeamFeed(1L, 10L, null, 20);
+
+        assertThat(response.getItems().get(0).getStatus())
+                .isEqualTo(QaResponseStatus.TEAM_ANSWER_PENDING);
+        assertThat(response.getItems().get(0).isCanAnswer()).isFalse();
+        verifyNoInteractions(qaAnswerSourceRepository);
     }
 
     @Test

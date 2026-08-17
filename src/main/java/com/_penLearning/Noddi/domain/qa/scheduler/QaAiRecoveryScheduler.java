@@ -5,13 +5,13 @@ import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.event.QaQuestionCreatedEvent;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.qa.service.QaAiAnswerLifecycleService;
+import com._penLearning.Noddi.domain.qa.service.QaAiRecoveryOutcome;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,7 +39,6 @@ public class QaAiRecoveryScheduler {
             cron = "${scheduler.qa-ai.recovery-cron:0 */5 * * * *}",
             zone = "${scheduler.qa-ai.zone:Asia/Seoul}"
     )
-    @Transactional
     public void retryStalledAnswers() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(processingTimeoutMinutes);
         List<QaQuestion> candidates = qaQuestionRepository
@@ -47,9 +46,23 @@ public class QaAiRecoveryScheduler {
 
         int recoveredCount = 0;
         for (QaQuestion question : candidates) {
-            if (answerLifecycleService.prepareRecovery(question.getQuestionId(), threshold)) {
-                eventPublisher.publishEvent(new QaQuestionCreatedEvent(question.getQuestionId()));
-                recoveredCount++;
+            try {
+                // 외부 트랜잭션 없이 호출해 후보마다 lifecycleService의 독립 트랜잭션을 사용한다.
+                QaAiRecoveryOutcome outcome = answerLifecycleService.prepareRecovery(
+                        question.getQuestionId(),
+                        threshold
+                );
+                if (outcome == QaAiRecoveryOutcome.RETRY) {
+                    eventPublisher.publishEvent(new QaQuestionCreatedEvent(question.getQuestionId()));
+                    recoveredCount++;
+                }
+            } catch (RuntimeException exception) {
+                // 한 질문의 불일치나 잠금 실패가 나머지 복구 후보를 막지 않도록 격리한다.
+                log.error(
+                        "[QaAiRecoveryScheduler] AI 답변 복구 실패. questionId={}",
+                        question.getQuestionId(),
+                        exception
+                );
             }
         }
 

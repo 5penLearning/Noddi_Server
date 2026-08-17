@@ -52,10 +52,14 @@ public class QaResponseDto {
         private Long questionerId;
         private String questionerName;
         private String content;
-        private QaStatus status;
+        private QaResponseStatus status;
         private LocalDateTime createdAt;
 
         public static QuestionInfo from(QaQuestion question) {
+            return from(question, false);
+        }
+
+        public static QuestionInfo from(QaQuestion question, boolean canViewFailureStatus) {
             return QuestionInfo.builder()
                     .questionId(question.getQuestionId())
                     .targetTeamId(question.getTargetTeam().getTeamId())
@@ -63,7 +67,7 @@ public class QaResponseDto {
                     .questionerId(question.getQuestioner().getUserId())
                     .questionerName(question.getQuestioner().getName())
                     .content(question.getContent())
-                    .status(question.getStatus())
+                    .status(QaResponseStatus.from(question.getStatus(), canViewFailureStatus))
                     .createdAt(question.getCreatedAt())
                     .build();
         }
@@ -74,29 +78,33 @@ public class QaResponseDto {
     public static class QuestionDetail {
         private Long questionId;
         private String content;
-        private QaStatus status;
+        private QaResponseStatus status;
         private String targetTeamName;
         private LocalDateTime createdAt;
         private Long questionerId;
         private String questionerName;
         private AnswerInfo answer;
         private List<AnswerSourceInfo> sources;
+        private boolean canAnswer;
 
         public static QuestionDetail of(
                 QaQuestion question,
                 QaAnswer answer,
-                List<QaAnswerSource> sources
+                List<QaAnswerSource> sources,
+                boolean canAnswer,
+                boolean canViewFailureStatus
         ) {
             return QuestionDetail.builder()
                     .questionId(question.getQuestionId())
                     .content(question.getContent())
-                    .status(question.getStatus())
+                    .status(QaResponseStatus.from(question.getStatus(), canViewFailureStatus))
                     .targetTeamName(question.getTargetTeam().getName())
                     .createdAt(question.getCreatedAt())
                     .questionerId(question.getQuestioner().getUserId())
                     .questionerName(question.getQuestioner().getName())
                     .answer(answer != null ? AnswerInfo.from(answer) : null)
                     .sources(sources.stream().map(AnswerSourceInfo::from).toList())
+                    .canAnswer(canAnswer)
                     .build();
         }
     }
@@ -186,16 +194,24 @@ public class QaResponseDto {
     @Builder
     public static class FeedItem {
         private FeedQuestion question;
-        private QaStatus status;
+        private QaResponseStatus status;
         private FeedAnswer answer;
+        private boolean canAnswer;
 
-        public static FeedItem of(QaQuestion question, QaAnswer answer, List<QaAnswerSource> sources) {
+        public static FeedItem of(
+                QaQuestion question,
+                QaAnswer answer,
+                List<QaAnswerSource> sources,
+                boolean canAnswer,
+                boolean canViewFailureStatus
+        ) {
             return FeedItem.builder()
                     .question(FeedQuestion.from(question))
-                    .status(question.getStatus())
+                    .status(QaResponseStatus.from(question.getStatus(), canViewFailureStatus))
                     .answer(
                             answer != null ? FeedAnswer.from(answer, sources) : null
                     )
+                    .canAnswer(canAnswer)
                     .build();
         }
     }

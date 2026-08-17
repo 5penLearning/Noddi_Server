@@ -95,6 +95,8 @@ openai:
 qa:
   ai:
     max-generation-attempts: ${QA_AI_MAX_GENERATION_ATTEMPTS:3}
+    # 정상적인 AI 호출 실패는 2초, 4초 순으로 짧게 재시도한다.
+    retry-base-delay-millis: ${QA_AI_RETRY_BASE_DELAY_MILLIS:2000}
   rag:
     top-k: ${QA_RAG_TOP_K:5} # 사용자의 질문과 가장 유사한 청크를 몇 개까지 가져올 것인지 설정
     similarity-threshold: ${QA_RAG_SIMILARITY_THRESHOLD:0.2} # 현재 검증 데이터 기준 하한선이며 평가 결과에 따라 환경변수로 조정

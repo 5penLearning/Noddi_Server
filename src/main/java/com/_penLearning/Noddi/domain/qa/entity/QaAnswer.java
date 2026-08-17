@@ -20,7 +20,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * 질문에 생성된 AI 답변이다.
- * 담당자가 수정하면 기존 내용을 보관하지 않고 현재 답변을 변경하며, 마지막 수정자만 기록한다.
+ * 담당자가 수정하면 현재 답변을 변경하고 마지막 수정자를 기록한다.
+ * 버전별 내용은 QaAnswerRevision에 별도로 누적한다.
  */
 @Entity
 @Getter
@@ -57,10 +58,23 @@ public class QaAnswer extends BaseEntity {
         return new QaAnswer(question, content);
     }
 
+    public static QaAnswer createSystemNotice(QaQuestion question, String content) {
+        QaAnswer answer = new QaAnswer(question, content);
+        answer.answerType = AnswerType.SYSTEM;
+        return answer;
+    }
+
     // 현재 답변을 수정하고 마지막 수정자를 기록한다
     public void revise(String content, User reviser) {
         this.content = content;
         this.revisedBy = reviser;
+    }
+
+    public void provideByTeam(String content) {
+        this.content = content;
+        // 시스템 안내문을 실제 답변으로 교체하는 최초 작성이므로 '수정됨'으로 표시하지 않는다.
+        this.revisedBy = null;
+        this.answerType = AnswerType.TEAM;
     }
 
     // 수정 여부 판단

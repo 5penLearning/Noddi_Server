@@ -6,13 +6,14 @@ import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
+import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.entity.Team;
-import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
@@ -61,10 +62,11 @@ public class QaQuestionQueryService {
     public Page<QaResponseDto.QuestionInfo> getTeamQuestions(Long requesterId, Long teamId, Pageable pageable) {
         Team targetTeam = getTeamOrThrow(teamId);
 
-        getProjectMemberOrThrow(requesterId, targetTeam);
+        User requester = validateProjectMembership(requesterId, targetTeam);
+        boolean targetTeamMember = teamMemberRepository.existsByTeamAndUser(targetTeam, requester);
 
         return qaQuestionRepository.findAllByTargetTeamWithUser(targetTeam, pageable)
-                .map(QaResponseDto.QuestionInfo::from);
+                .map(question -> QaResponseDto.QuestionInfo.from(question, targetTeamMember));
     }
 
     public QaResponseDto.Feed  getTeamFeed(Long requesterId, Long teamId, Long cursor, int size) {
@@ -72,9 +74,8 @@ public class QaQuestionQueryService {
 
         Team targetTeam = getTeamOrThrow(teamId);
 
-        User requester = getProjectMemberOrThrow(requesterId, targetTeam);
-
-        boolean canViewSources = teamMemberRepository.existsByTeamAndUser(targetTeam, requester);
+        User requester = validateProjectMembership(requesterId, targetTeam);
+        boolean targetTeamMember = teamMemberRepository.existsByTeamAndUser(targetTeam, requester);
 
         List<QaQuestion> fetchedQuestions = qaQuestionRepository.findFeedByTargetTeam(
                 targetTeam, cursor, PageRequest.of(0, size + 1));
@@ -95,27 +96,11 @@ public class QaQuestionQueryService {
                         Function.identity()
                 ));
 
-        /*
-         * 출처는 다음 두 조건을 모두 만족할 때만 제공한다.
-         *
-         * 1. 요청자가 답변 대상 팀의 구성원이다.
-         * 2. 현재 답변이 담당자 수정본이 아닌 AI 최초 답변이다.
-         *
-         * 담당자가 수정한 내용은 기존 AI 근거가 수정본 전체를 뒷받침한다고
-         * 보장할 수 없으므로 피드에서는 출처를 표시하지 않는다.
-         */
-        List<QaAnswer> sourceVisibleAnswers = canViewSources
-                ? answers.stream()
-                .filter(answer -> !answer.isRevised())
-                .toList()
+        // 출처는 대상 팀원이 AI 최초 답변을 보는 경우에만 조회한다.
+        List<QaAnswer> sourceVisibleAnswers = targetTeamMember
+                ? answers.stream().filter(answer -> !answer.isRevised()).toList()
                 : List.of();
-
-        /*
-         * 권한이 없으면 빈 목록을 전달해 Repository 호출 자체를 생략한다.
-         * referenceId와 excerpt가 DB에서 불필요하게 조회되는 것도 방지한다.
-         */
-        List<QaAnswerSource> sources =
-                findSources(sourceVisibleAnswers);
+        List<QaAnswerSource> sources = findSources(sourceVisibleAnswers);
 
         Map<Long, List<QaAnswerSource>> sourceByAnswerId = sources.stream()
                 .collect(Collectors.groupingBy(
@@ -129,18 +114,21 @@ public class QaQuestionQueryService {
                     List<QaAnswerSource> answerSources =
                             answer == null ? List.of() : sourceByAnswerId.getOrDefault(answer.getAnswerId(), List.of());
 
-                    return QaResponseDto.FeedItem.of(question, answer, answerSources);
+                    boolean canAnswer = targetTeamMember
+                            && question.getStatus() == QaStatus.MANUAL_REQUIRED;
+                    return QaResponseDto.FeedItem.of(
+                            question,
+                            answer,
+                            answerSources,
+                            canAnswer,
+                            targetTeamMember
+                    );
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.reverse(items);
 
-        return QaResponseDto.Feed.of(
-                targetTeam,
-                items,
-                nextCursor,
-                hasNext,
-                canViewSources);
+        return QaResponseDto.Feed.of(targetTeam, items, nextCursor, hasNext, targetTeamMember);
 
     }
 
@@ -149,21 +137,21 @@ public class QaQuestionQueryService {
         QaQuestion question = qaQuestionRepository.findByIdWithTeam(questionId)
                 .orElseThrow(() -> new GeneralException(QaErrorCode.QUESTION_NOT_FOUND));
 
-        User requester = getProjectMemberOrThrow(requesterId, question.getTargetTeam());
+        User requester = validateProjectMembership(requesterId, question.getTargetTeam());
+        boolean targetTeamMember = teamMemberRepository.existsByTeamAndUser(question.getTargetTeam(), requester);
+        boolean canAnswer = question.getStatus() == QaStatus.MANUAL_REQUIRED && targetTeamMember;
 
         QaAnswer answer = qaAnswerRepository.findByQuestion(question).orElse(null);
-
-        boolean canViewSources = teamMemberRepository.existsByTeamAndUser(question.getTargetTeam(), requester);
-
-        boolean shouldLoadSources =
-                answer != null
-                        && canViewSources
-                        && !answer.isRevised();
-
-        List<QaAnswerSource> sources = shouldLoadSources
+        List<QaAnswerSource> sources = answer != null && targetTeamMember && !answer.isRevised()
                 ? qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId())
                 : List.of();
-        return QaResponseDto.QuestionDetail.of(question, answer, sources);
+        return QaResponseDto.QuestionDetail.of(
+                question,
+                answer,
+                sources,
+                canAnswer,
+                targetTeamMember
+        );
     }
 
     private Team getTeamOrThrow(Long teamId) {
@@ -172,14 +160,13 @@ public class QaQuestionQueryService {
     }
 
     // 공통 프로젝트 권한 검증 로직
-    private User getProjectMemberOrThrow(Long requesterId, Team targetTeam) {
+    private User validateProjectMembership(Long requesterId, Team targetTeam) {
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
 
         if (!projectMemberRepository.existsByProjectAndUser(targetTeam.getProject(), requester)) {
             throw new GeneralException(QaErrorCode.NOT_PROJECT_MEMBER);
         }
-
         return requester;
     }
 

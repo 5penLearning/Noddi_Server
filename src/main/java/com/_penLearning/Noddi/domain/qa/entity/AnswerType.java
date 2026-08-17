@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.qa.entity;
 
 public enum AnswerType {
-    // 최초 답변은 항상 AI가 생성하며, 담당자가 수정해도 생성 주체는 AI로 유지한다.
-    AI
+    AI,     // AI가 생성한 답변
+    SYSTEM, // AI 최종 실패 시 생성한 안내 답변
+    TEAM    // 대상 팀원이 직접 작성한 답변
 }
