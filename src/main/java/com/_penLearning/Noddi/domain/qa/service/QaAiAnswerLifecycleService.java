@@ -1,7 +1,11 @@
 package com._penLearning.Noddi.domain.qa.service;
 
 import com._penLearning.Noddi.domain.qa.code.QaErrorCode;
-import com._penLearning.Noddi.domain.qa.entity.*;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerRevision;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
+import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
+import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
