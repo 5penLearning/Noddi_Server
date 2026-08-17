@@ -44,7 +44,7 @@ public class QaAnswerRevisionQueryService {
 
     public QaResponseDto.AnswerRevisionHistory getAnswerRevisions(Long requesterId, Long answerId) {
 
-        QaAnswer answer = qaAnswerRepository.findByIdWithQuestionAndTeamForUpdate(answerId)
+        QaAnswer answer = qaAnswerRepository.findByIdWithQuestionTeamAndProject(answerId)
                 .orElseThrow(() -> new GeneralException(QaErrorCode.ANSWER_NOT_FOUND));
 
         User requester = userRepository.findById(requesterId)
