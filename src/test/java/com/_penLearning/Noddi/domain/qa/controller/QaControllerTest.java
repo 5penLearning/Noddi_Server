@@ -4,7 +4,9 @@ import com._penLearning.Noddi.domain.auth.entity.AuthMember;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
 import com._penLearning.Noddi.domain.qa.entity.AnswerType;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
+import com._penLearning.Noddi.domain.qa.entity.RevisionEditorType;
 import com._penLearning.Noddi.domain.qa.entity.SourceType;
+import com._penLearning.Noddi.domain.qa.service.QaAnswerRevisionQueryService;
 import com._penLearning.Noddi.domain.qa.service.QaAnswerStreamSubscriptionService;
 import com._penLearning.Noddi.domain.qa.service.QaAnswerUpdateService;
 import com._penLearning.Noddi.domain.qa.service.QaQuestionCommandService;
@@ -55,6 +57,9 @@ class QaControllerTest {
     private QaAnswerUpdateService qaAnswerUpdateService;
 
     @Mock
+    private QaAnswerRevisionQueryService qaAnswerRevisionQueryService;
+
+    @Mock
     private QaAnswerStreamSubscriptionService qaAnswerStreamSubscriptionService;
 
     private MockMvc mockMvc;
@@ -65,6 +70,7 @@ class QaControllerTest {
                 qaQuestionCommandService,
                 qaQuestionQueryService,
                 qaAnswerUpdateService,
+                qaAnswerRevisionQueryService,
                 qaAnswerStreamSubscriptionService
         );
 
@@ -156,6 +162,75 @@ class QaControllerTest {
 
         // Then: 문자열 query parameter가 Long과 int로 변환되어 서비스에 정확히 전달된다.
         verify(qaQuestionQueryService).getTeamFeed(1L, 10L, 81L, 10);
+    }
+
+    @Test
+    void returnsAnswerRevisionHistoryForAuthenticatedProjectMember() throws Exception {
+        // Given: 수정 이력 조회 서비스가 AI 최초 답변과 담당자 수정본을 반환한다.
+        LocalDateTime aiCreatedAt = LocalDateTime.of(2026, 8, 17, 10, 0);
+        LocalDateTime revisedAt = LocalDateTime.of(2026, 8, 17, 11, 0);
+
+        QaResponseDto.AnswerSourceInfo source = QaResponseDto.AnswerSourceInfo.builder()
+                .citationIndex(1)
+                .sourceType(SourceType.TRANSCRIPT)
+                .referenceId(301L)
+                .sourceTitle("8월 기획 회의")
+                .excerpt("출시일은 9월 5일입니다.")
+                .build();
+
+        QaResponseDto.AnswerRevisionItem version1 =
+                QaResponseDto.AnswerRevisionItem.builder()
+                        .versionNumber(1)
+                        .content("AI 최초 답변")
+                        .editorType(RevisionEditorType.AI)
+                        .editorId(null)
+                        .editorName("AI")
+                        .createdAt(aiCreatedAt)
+                        .sources(List.of(source))
+                        .build();
+
+        QaResponseDto.AnswerRevisionItem version2 =
+                QaResponseDto.AnswerRevisionItem.builder()
+                        .versionNumber(2)
+                        .content("담당자가 수정한 최종 답변")
+                        .editorType(RevisionEditorType.HUMAN)
+                        .editorId(20L)
+                        .editorName("홍길동")
+                        .createdAt(revisedAt)
+                        .sources(List.of())
+                        .build();
+
+        QaResponseDto.AnswerRevisionHistory response =
+                QaResponseDto.AnswerRevisionHistory.builder()
+                        .answerId(201L)
+                        .totalVersions(2)
+                        .canViewSources(true)
+                        .revisions(List.of(version1, version2))
+                        .build();
+
+        when(qaAnswerRevisionQueryService.getAnswerRevisions(1L, 201L))
+                .thenReturn(response);
+
+        // When & Then: URL의 answerId와 인증 사용자의 ID가 서비스에 전달되고,
+        // 프론트가 화살표 UI에 사용할 전체 버전 배열이 공통 응답 형식으로 반환된다.
+        mockMvc.perform(get("/api/v1/qa/answers/{answerId}/revisions", 201L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.message").value("답변 수정 이력 조회에 성공했습니다."))
+                .andExpect(jsonPath("$.result.answerId").value(201L))
+                .andExpect(jsonPath("$.result.totalVersions").value(2))
+                .andExpect(jsonPath("$.result.canViewSources").value(true))
+                .andExpect(jsonPath("$.result.revisions[0].versionNumber").value(1))
+                .andExpect(jsonPath("$.result.revisions[0].editorType").value("AI"))
+                .andExpect(jsonPath("$.result.revisions[0].editorName").value("AI"))
+                .andExpect(jsonPath("$.result.revisions[0].sources[0].referenceId").value(301L))
+                .andExpect(jsonPath("$.result.revisions[1].versionNumber").value(2))
+                .andExpect(jsonPath("$.result.revisions[1].editorType").value("HUMAN"))
+                .andExpect(jsonPath("$.result.revisions[1].editorId").value(20L))
+                .andExpect(jsonPath("$.result.revisions[1].editorName").value("홍길동"))
+                .andExpect(jsonPath("$.result.revisions[1].sources").isEmpty());
+
+        verify(qaAnswerRevisionQueryService).getAnswerRevisions(1L, 201L);
     }
 
     @Test
