@@ -2,6 +2,7 @@ package com._penLearning.Noddi.domain.qa.repository;
 
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.user.entity.User;
 import jakarta.persistence.LockModeType;
@@ -88,4 +89,8 @@ public interface QaQuestionRepository extends JpaRepository<QaQuestion, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM QaQuestion question WHERE question.targetTeam = :team")
     void bulkDeleteByTeam(@Param("team") Team team);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM QaQuestion question WHERE question.targetTeam.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }

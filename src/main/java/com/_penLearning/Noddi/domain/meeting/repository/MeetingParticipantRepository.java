@@ -2,6 +2,7 @@ package com._penLearning.Noddi.domain.meeting.repository;
 
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.meeting.entity.MeetingParticipant;
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +22,8 @@ public interface MeetingParticipantRepository extends JpaRepository<MeetingParti
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM MeetingParticipant participant WHERE participant.meeting.team = :team")
     void bulkDeleteByTeam(@Param("team") Team team);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM MeetingParticipant participant WHERE participant.meeting.team.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }

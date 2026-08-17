@@ -1,20 +1,13 @@
 package com._penLearning.Noddi.domain.project.service;
 
-import com._penLearning.Noddi.domain.announcement.repository.AnnouncementRepository;
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.dto.ProjectRequestDto;
 import com._penLearning.Noddi.domain.project.dto.ProjectResponseDto;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.entity.ProjectRole;
-import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
-import com._penLearning.Noddi.domain.qa.rag.indexing.KnowledgeDeletionService;
-import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
-import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
-import com._penLearning.Noddi.domain.team.repository.TeamRepository;
-import com._penLearning.Noddi.domain.teamPage.repository.TeamPageRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
@@ -33,14 +26,8 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
-    private final ProjectInviteRepository projectInviteRepository;
     private final UserRepository userRepository;
-    private final TeamRepository teamRepository;
-    private final TeamInviteRepository teamInviteRepository;
-    private final TeamMemberRepository teamMemberRepository;
-    private final TeamPageRepository teamPageRepository;
-    private final KnowledgeDeletionService knowledgeDeletionService;
-    private final AnnouncementRepository announcementRepository;
+    private final ProjectResourceDeletionService projectResourceDeletionService;
 
     // 프로젝트 생성
     @Transactional
@@ -101,17 +88,8 @@ public class ProjectService {
         // 1. 요청자가 해당 프로젝트의 LEADER인지 검증
         validateProjectLeader(project, requesterId);
 
-        // 프로젝트 하위 팀 자료가 외부 Vector DB에 남지 않도록 색인부터 정리한다.
-        knowledgeDeletionService.deleteProjectKnowledge(projectId);
-
-        // FK 제약조건을 고려해 팀의 하위 데이터부터 삭제한다.
-        announcementRepository.bulkDeleteByProject(project);
-        teamPageRepository.bulkDeleteByProject(project);
-        teamInviteRepository.bulkDeleteByProject(project);
-        teamMemberRepository.bulkDeleteByProject(project);
-        teamRepository.bulkDeleteByProject(project);
-        projectInviteRepository.deleteBulkByProject(project);
-        projectMemberRepository.bulkDeleteByProject(project);
+        // 회의·Q&A를 포함한 프로젝트 소유 데이터를 FK 의존 순서대로 일괄 삭제한다.
+        projectResourceDeletionService.deleteAllOwnedBy(project);
 
         // 3. 프로젝트 삭제
         projectRepository.delete(project);
