@@ -15,14 +15,13 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class TeamPageKnowledgeEventHandler {
 
-    private final TeamPageKnowledgeIndexService indexService;
-    private final KnowledgeDeletionService deletionService;
+    private final TeamPageKnowledgeCoordinator coordinator;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChanged(TeamPageChangedEvent event) {
         try {
-            KnowledgeIndexResult result = indexService.index(event.pageId());
+            KnowledgeIndexResult result = coordinator.synchronize(event.pageId());
             log.info(
                     "[TeamPageKnowledgeIndex] 동기화 완료: pageId={}, indexedChunkCount={}, skipped={}",
                     event.pageId(),
@@ -30,7 +29,7 @@ public class TeamPageKnowledgeEventHandler {
                     result.skipped()
             );
         } catch (Exception exception) {
-            // 공유페이지 저장은 이미 완료되었으므로 인덱싱 실패를 분리해서 기록한다.
+            // 공유페이지 저장은 이미 완료됐다. 실패 건은 복구 스케줄러가 DB 상태를 기준으로 다시 처리한다.
             log.error("[TeamPageKnowledgeIndex] 동기화 실패: pageId={}", event.pageId(), exception);
         }
     }
@@ -39,8 +38,9 @@ public class TeamPageKnowledgeEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDeleted(TeamPageDeletedEvent event) {
         try {
-            deletionService.deleteTeamPageKnowledge(event.pageId());
+            coordinator.delete(event.pageId());
         } catch (Exception exception) {
+            // 원본 없이 남은 TEAM_TEXT 색인은 복구 스케줄러가 찾아 다시 삭제한다.
             log.error("[TeamPageKnowledgeIndex] 삭제 실패: pageId={}", event.pageId(), exception);
         }
     }
