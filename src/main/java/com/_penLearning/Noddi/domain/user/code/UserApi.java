@@ -16,7 +16,7 @@ public interface UserApi {
             @Parameter(hidden = true) AuthMember authMember
     );
 
-    @Operation(summary = "내 프로필 수정", description = "현재 로그인한 유저의 프로필(이름 등)을 수정합니다.")
+    @Operation(summary = "내 프로필 수정", description = "현재 로그인한 유저의 이름, 부서, 직함을 수정합니다.")
     ApiResponse<Void> updateProfile(
             UserRequestDto.UpdateProfile request,
             @Parameter(hidden = true) AuthMember authMember

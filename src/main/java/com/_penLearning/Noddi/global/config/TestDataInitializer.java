@@ -53,6 +53,8 @@ public class TestDataInitializer implements CommandLineRunner {
                     .organization(testOrg)
                     .email("test1@gmail.com")
                     .name("테스트 유저 1")
+                    .department("백엔드팀")
+                    .position("백엔드 개발자")
                     .password(encodedPassword)
                     .build();
 
@@ -60,6 +62,8 @@ public class TestDataInitializer implements CommandLineRunner {
                     .organization(testOrg)
                     .email("test2@gmail.com")
                     .name("테스트 유저 2")
+                    .department("백엔드팀")
+                    .position("백엔드 개발자")
                     .password(encodedPassword)
                     .build();
 
@@ -67,6 +71,8 @@ public class TestDataInitializer implements CommandLineRunner {
                     .organization(testOrg)
                     .email("test3@gmail.com")
                     .name("테스트 유저 3")
+                    .department("기획팀")
+                    .position("서비스 기획자")
                     .password(encodedPassword)
                     .build();
 

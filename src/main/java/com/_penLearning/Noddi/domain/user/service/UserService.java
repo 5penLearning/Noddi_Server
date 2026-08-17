@@ -31,11 +31,15 @@ public class UserService {
 
     // 내 프로필 수정
     @Transactional
-    public void updateProfile(Long userId, String newName) {
+    public void updateProfile(Long userId, UserRequestDto.UpdateProfile request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
 
-        user.updateProfile(newName);
+        user.updateProfile(
+                request.getName(),
+                request.getDepartment(),
+                request.getPosition()
+        );
     }
 
     // 비번 변경

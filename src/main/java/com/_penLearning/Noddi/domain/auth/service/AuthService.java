@@ -53,6 +53,8 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(encodedPassword)
                 .name(request.getName())
+                .department(request.getDepartment())
+                .position(request.getPosition())
                 .organization(organization)
                 .build();
 

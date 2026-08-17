@@ -34,7 +34,7 @@ public class UserController implements UserApi {
             @RequestBody @Valid UserRequestDto.UpdateProfile request,
             @AuthenticationPrincipal AuthMember authMember) {
 
-        userService.updateProfile(authMember.getUserId(), request.getName());
+        userService.updateProfile(authMember.getUserId(), request);
         return ApiResponse.onSuccess("프로필이 성공적으로 수정되었습니다.", null);
     }
 

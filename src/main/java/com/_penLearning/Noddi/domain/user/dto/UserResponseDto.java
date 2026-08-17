@@ -12,6 +12,8 @@ public class UserResponseDto {
         private Long userId;
         private String email;
         private String name;
+        private String department;
+        private String position;
         private Long organizationId;
         private String organizationName;
 
@@ -20,6 +22,8 @@ public class UserResponseDto {
                     .userId(user.getUserId())
                     .email(user.getEmail())
                     .name(user.getName())
+                    .department(user.getDepartment())
+                    .position(user.getPosition())
                     .organizationId(user.getOrganization().getOrganizationId())
                     .organizationName(user.getOrganization().getName())
                     .build();

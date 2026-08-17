@@ -31,19 +31,46 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
+    /** 사용자 프로필에 표시할 자유 입력 부서명이다. 권한 판단에는 사용하지 않는다. */
+    @Column(length = 20)
+    private String department;
+
+    /** 사용자 프로필에 표시할 자유 입력 직함이다. 권한 판단에는 사용하지 않는다. */
+    @Column(length = 20)
+    private String position;
+
     @Builder
-    public User(Organization organization, String email, String name, String password) {
+    public User(
+            Organization organization,
+            String email,
+            String name,
+            String password,
+            String department,
+            String position
+    ) {
         this.organization = organization;
         this.email = email;
         this.name = name;
         this.password = password;
+        this.department = normalizeProfileValue(department);
+        this.position = normalizeProfileValue(position);
     }
 
-    public void updateProfile(String name) {
+    public void updateProfile(String name, String department, String position) {
         this.name = name;
+        if (department != null) {
+            this.department = normalizeProfileValue(department);
+        }
+        if (position != null) {
+            this.position = normalizeProfileValue(position);
+        }
     }
 
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    private static String normalizeProfileValue(String value) {
+        return value == null ? null : value.strip();
     }
 }
