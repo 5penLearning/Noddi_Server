@@ -3,6 +3,7 @@ package com._penLearning.Noddi.domain.notification.event;
 import com._penLearning.Noddi.domain.notification.entity.NotificationReferenceType;
 import com._penLearning.Noddi.domain.notification.entity.NotificationType;
 import com._penLearning.Noddi.domain.notification.message.NotificationMessageFactory;
+import com._penLearning.Noddi.domain.notification.service.NotificationCommandService;
 import com._penLearning.Noddi.domain.notification.service.NotificationCreateService;
 import com._penLearning.Noddi.domain.qa.event.QaAiFinalFailureEvent;
 import com._penLearning.Noddi.domain.qa.event.QaAnswerPublishedEvent;
@@ -21,12 +22,14 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class QaNotificationEventHandler {
 
     private final NotificationCreateService notificationCreateService;
+    private final NotificationCommandService notificationCommandService;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final NotificationMessageFactory notificationMessageFactory;
@@ -76,6 +79,15 @@ public class QaNotificationEventHandler {
             }
 
             case TEAM_PROVIDED -> {
+
+                notificationCommandService.resolveQuestionNotifications(
+                        event.questionId(),
+                        Set.of(
+                                NotificationType.QA_ANSWER_WAITING,
+                                NotificationType.QA_AI_FAILED
+                        )
+                );
+
                 /*
                  * 대상 팀원이 직접 작성한 답변이 등록된 경우다.
                  *
@@ -96,6 +108,12 @@ public class QaNotificationEventHandler {
             }
 
             case ANSWER_REVISED -> {
+
+                notificationCommandService.resolveQuestionNotifications(
+                        event.questionId(),
+                        Set.of(NotificationType.QA_AI_REVIEW_REQUIRED)
+                );
+
                 /*
                  * 동일 답변이 여러 번 수정되더라도 질문자가 아직 읽지 않았다면
                  * 알림 레코드를 계속 추가하지 않고 기존 알림을 최신 상태로 갱신한다.
