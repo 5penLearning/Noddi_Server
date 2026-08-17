@@ -1,12 +1,14 @@
 package com._penLearning.Noddi.domain.qa.service;
 
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerRevision;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.entity.SourceType;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerRevisionRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,9 @@ class QaAiAnswerLifecycleServiceTest {
     private QaAnswerSourceRepository qaAnswerSourceRepository;
 
     @Mock
+    private QaAnswerRevisionRepository qaAnswerRevisionRepository;
+
+    @Mock
     private QaQuestion question;
 
     @Mock
@@ -49,7 +54,8 @@ class QaAiAnswerLifecycleServiceTest {
         QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
                 qaQuestionRepository,
                 qaAnswerRepository,
-                qaAnswerSourceRepository
+                qaAnswerSourceRepository,
+                qaAnswerRevisionRepository
         );
         List<RetrievedKnowledge> sources = List.of(
                 new RetrievedKnowledge(
@@ -77,8 +83,23 @@ class QaAiAnswerLifecycleServiceTest {
         when(qaAnswerRepository.existsByQuestion(question)).thenReturn(false);
         when(qaAnswerRepository.save(any(QaAnswer.class))).thenReturn(answer);
         when(answer.getAnswerId()).thenReturn(100L);
+        when(answer.getContent()).thenReturn("첫 번째 자료만 사용한 답변입니다. [근거 1]");
 
         Long answerId = service.complete(1L, "첫 번째 자료만 사용한 답변입니다. [근거 1]", sources);
+
+        // AI가 만든 답변은 현재 답변(QaAnswer)으로만 남는 것이 아니라,
+        // 담당자가 나중에 수정해도 원문을 볼 수 있도록 수정 이력 v1에도 저장되어야 한다.
+        ArgumentCaptor<QaAnswerRevision> revisionCaptor =
+                ArgumentCaptor.forClass(QaAnswerRevision.class);
+        verify(qaAnswerRevisionRepository).save(revisionCaptor.capture());
+
+        QaAnswerRevision initialRevision = revisionCaptor.getValue();
+        assertThat(initialRevision.getAnswer()).isSameAs(answer);
+        assertThat(initialRevision.getVersionNumber()).isEqualTo(1);
+        assertThat(initialRevision.getContent())
+                .isEqualTo("첫 번째 자료만 사용한 답변입니다. [근거 1]");
+        assertThat(initialRevision.getEditorType().name()).isEqualTo("AI");
+        assertThat(initialRevision.getRevisedBy()).isNull();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<QaAnswerSource>> sourceCaptor = ArgumentCaptor.forClass(List.class);
@@ -110,7 +131,8 @@ class QaAiAnswerLifecycleServiceTest {
         QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
                 qaQuestionRepository,
                 qaAnswerRepository,
-                qaAnswerSourceRepository
+                qaAnswerSourceRepository,
+                qaAnswerRevisionRepository
         );
         List<RetrievedKnowledge> sources = List.of(new RetrievedKnowledge(
                 "knowledge-transcript-20-0",
@@ -130,6 +152,7 @@ class QaAiAnswerLifecycleServiceTest {
                 .isInstanceOf(com._penLearning.Noddi.global.exception.GeneralException.class);
 
         verify(qaAnswerRepository, never()).save(any(QaAnswer.class));
+        verify(qaAnswerRevisionRepository, never()).save(any(QaAnswerRevision.class));
         verify(question, never()).markAsAnswered();
     }
 
@@ -138,7 +161,8 @@ class QaAiAnswerLifecycleServiceTest {
         QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
                 qaQuestionRepository,
                 qaAnswerRepository,
-                qaAnswerSourceRepository
+                qaAnswerSourceRepository,
+                qaAnswerRevisionRepository
         );
         List<RetrievedKnowledge> sources = List.of(new RetrievedKnowledge(
                 "knowledge-transcript-20-0",
@@ -172,7 +196,8 @@ class QaAiAnswerLifecycleServiceTest {
         QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
                 qaQuestionRepository,
                 qaAnswerRepository,
-                qaAnswerSourceRepository
+                qaAnswerSourceRepository,
+                qaAnswerRevisionRepository
         );
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(10);
 
@@ -190,7 +215,8 @@ class QaAiAnswerLifecycleServiceTest {
         QaAiAnswerLifecycleService service = new QaAiAnswerLifecycleService(
                 qaQuestionRepository,
                 qaAnswerRepository,
-                qaAnswerSourceRepository
+                qaAnswerSourceRepository,
+                qaAnswerRevisionRepository
         );
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(10);
 

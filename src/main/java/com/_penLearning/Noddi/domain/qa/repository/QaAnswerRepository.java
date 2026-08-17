@@ -51,4 +51,22 @@ public interface QaAnswerRepository extends JpaRepository<QaAnswer, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM QaAnswer answer WHERE answer.question.targetTeam.project = :project")
     void bulkDeleteByProject(@Param("project") Project project);
+
+    /**
+     * 수정 이력 조회에 필요한 답변, 질문, 대상 팀, 프로젝트를 함께 조회한다.
+     *
+     * 서비스에서 프로젝트 구성원 권한을 검사할 때
+     * 연관 엔티티가 각각 추가 조회되는 것을 방지한다.
+     */
+    @Query("""
+        SELECT answer
+        FROM QaAnswer answer
+        JOIN FETCH answer.question question
+        JOIN FETCH question.targetTeam targetTeam
+        JOIN FETCH targetTeam.project
+        WHERE answer.answerId = :answerId
+        """)
+    Optional<QaAnswer> findByIdWithQuestionTeamAndProject(
+            @Param("answerId") Long answerId
+    );
 }

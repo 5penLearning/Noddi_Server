@@ -11,6 +11,7 @@ import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.entity.Team;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
@@ -45,6 +46,7 @@ public class QaQuestionQueryService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final TeamMemberRepository teamMemberRepository;
 
     // 내가 작성한 질문 목록 조회
     public Page<QaResponseDto.QuestionInfo> getMyQuestions(Long userId, Pageable pageable) {
@@ -59,7 +61,7 @@ public class QaQuestionQueryService {
     public Page<QaResponseDto.QuestionInfo> getTeamQuestions(Long requesterId, Long teamId, Pageable pageable) {
         Team targetTeam = getTeamOrThrow(teamId);
 
-        validateProjectMembership(requesterId, targetTeam);
+        getProjectMemberOrThrow(requesterId, targetTeam);
 
         return qaQuestionRepository.findAllByTargetTeamWithUser(targetTeam, pageable)
                 .map(QaResponseDto.QuestionInfo::from);
@@ -70,7 +72,9 @@ public class QaQuestionQueryService {
 
         Team targetTeam = getTeamOrThrow(teamId);
 
-        validateProjectMembership(requesterId, targetTeam);
+        User requester = getProjectMemberOrThrow(requesterId, targetTeam);
+
+        boolean canViewSources = teamMemberRepository.existsByTeamAndUser(targetTeam, requester);
 
         List<QaQuestion> fetchedQuestions = qaQuestionRepository.findFeedByTargetTeam(
                 targetTeam, cursor, PageRequest.of(0, size + 1));
@@ -91,7 +95,27 @@ public class QaQuestionQueryService {
                         Function.identity()
                 ));
 
-        List<QaAnswerSource> sources = findSources(answers);
+        /*
+         * 출처는 다음 두 조건을 모두 만족할 때만 제공한다.
+         *
+         * 1. 요청자가 답변 대상 팀의 구성원이다.
+         * 2. 현재 답변이 담당자 수정본이 아닌 AI 최초 답변이다.
+         *
+         * 담당자가 수정한 내용은 기존 AI 근거가 수정본 전체를 뒷받침한다고
+         * 보장할 수 없으므로 피드에서는 출처를 표시하지 않는다.
+         */
+        List<QaAnswer> sourceVisibleAnswers = canViewSources
+                ? answers.stream()
+                .filter(answer -> !answer.isRevised())
+                .toList()
+                : List.of();
+
+        /*
+         * 권한이 없으면 빈 목록을 전달해 Repository 호출 자체를 생략한다.
+         * referenceId와 excerpt가 DB에서 불필요하게 조회되는 것도 방지한다.
+         */
+        List<QaAnswerSource> sources =
+                findSources(sourceVisibleAnswers);
 
         Map<Long, List<QaAnswerSource>> sourceByAnswerId = sources.stream()
                 .collect(Collectors.groupingBy(
@@ -111,7 +135,12 @@ public class QaQuestionQueryService {
 
         Collections.reverse(items);
 
-        return QaResponseDto.Feed.of(targetTeam, items, nextCursor, hasNext);
+        return QaResponseDto.Feed.of(
+                targetTeam,
+                items,
+                nextCursor,
+                hasNext,
+                canViewSources);
 
     }
 
@@ -120,12 +149,20 @@ public class QaQuestionQueryService {
         QaQuestion question = qaQuestionRepository.findByIdWithTeam(questionId)
                 .orElseThrow(() -> new GeneralException(QaErrorCode.QUESTION_NOT_FOUND));
 
-        validateProjectMembership(requesterId, question.getTargetTeam());
+        User requester = getProjectMemberOrThrow(requesterId, question.getTargetTeam());
 
         QaAnswer answer = qaAnswerRepository.findByQuestion(question).orElse(null);
-        List<QaAnswerSource> sources = answer == null
-                ? List.of()
-                : qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId());
+
+        boolean canViewSources = teamMemberRepository.existsByTeamAndUser(question.getTargetTeam(), requester);
+
+        boolean shouldLoadSources =
+                answer != null
+                        && canViewSources
+                        && !answer.isRevised();
+
+        List<QaAnswerSource> sources = shouldLoadSources
+                ? qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId())
+                : List.of();
         return QaResponseDto.QuestionDetail.of(question, answer, sources);
     }
 
@@ -135,13 +172,15 @@ public class QaQuestionQueryService {
     }
 
     // 공통 프로젝트 권한 검증 로직
-    private void validateProjectMembership(Long requesterId, Team targetTeam) {
+    private User getProjectMemberOrThrow(Long requesterId, Team targetTeam) {
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
 
         if (!projectMemberRepository.existsByProjectAndUser(targetTeam.getProject(), requester)) {
             throw new GeneralException(QaErrorCode.NOT_PROJECT_MEMBER);
         }
+
+        return requester;
     }
 
     private void validateFeedRequest(Long cursor, int size) {

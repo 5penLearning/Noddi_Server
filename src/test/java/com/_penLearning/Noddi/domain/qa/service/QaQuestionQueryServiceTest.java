@@ -13,6 +13,7 @@ import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
@@ -72,6 +73,9 @@ class QaQuestionQueryServiceTest {
     private ProjectMemberRepository projectMemberRepository;
 
     @Mock
+    private TeamMemberRepository teamMemberRepository;
+
+    @Mock
     private Team targetTeam;
 
     @Mock
@@ -90,7 +94,8 @@ class QaQuestionQueryServiceTest {
                 qaAnswerSourceRepository,
                 userRepository,
                 teamRepository,
-                projectMemberRepository
+                projectMemberRepository,
+                teamMemberRepository
         );
     }
 
@@ -111,6 +116,8 @@ class QaQuestionQueryServiceTest {
         LocalDateTime answerTime = LocalDateTime.of(2026, 8, 15, 10, 0, 5);
 
         allowProjectAccess();
+        // 요청자가 대상 팀원이므로 AI 답변의 출처까지 조회할 수 있다.
+        when(teamMemberRepository.existsByTeamAndUser(targetTeam, requester)).thenReturn(true);
 
         when(newestQuestion.getQuestionId()).thenReturn(103L);
         when(newestQuestion.getQuestioner()).thenReturn(newestQuestioner);
@@ -211,6 +218,8 @@ class QaQuestionQueryServiceTest {
         LocalDateTime createdAt = LocalDateTime.of(2026, 8, 15, 11, 0);
 
         allowProjectAccess();
+        // 대상 팀원은 출처 조회 권한이 있지만, 이 답변에는 실제 인용 출처가 없는 상황이다.
+        when(teamMemberRepository.existsByTeamAndUser(targetTeam, requester)).thenReturn(true);
 
         when(question.getQuestionId()).thenReturn(101L);
         when(question.getQuestioner()).thenReturn(questioner);

@@ -11,6 +11,7 @@ public enum QaErrorCode implements BaseErrorCode {
 
     INVALID_AI_ANSWER_CITATION(HttpStatus.INTERNAL_SERVER_ERROR, "QA500_2", "AI 답변에서 유효한 근거를 확인할 수 없습니다."),
     AI_ANSWER_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "QA500_1", "AI 답변을 생성하지 못했습니다."),
+    REVISION_HISTORY_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "QA500_3", "답변 수정 이력을 찾을 수 없습니다."),
 
     INVALID_FEED_SIZE(HttpStatus.BAD_REQUEST, "QA400_1", "피드 조회 크기는 1 이상 50 이하여야 합니다."),
     INVALID_FEED_CURSOR(HttpStatus.BAD_REQUEST, "QA400_2", "피드 커서는 1 이상이어야 합니다."),
