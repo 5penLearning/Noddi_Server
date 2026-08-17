@@ -153,17 +153,26 @@ public class QaResponseDto {
         private Long teamId;
         private String teamName;
 
+        /*
+         * 현재 사용자가 이 팀의 구성원인지 나타낸다.
+         *
+         * true인 경우에만 AI 답변의 회의록·팀 페이지 출처를 제공한다.
+         * 프론트는 이 값과 sources를 기준으로 참고 자료 버튼을 표시한다.
+         */
+        private boolean canViewSources;
+
         private List<FeedItem> items;
 
         private Long nextCursor;
         private boolean hasNext;
 
-        public static Feed of(Team team, List<FeedItem> items, Long nextCursor, boolean hasNext) {
+        public static Feed of(Team team, List<FeedItem> items, Long nextCursor, boolean hasNext, boolean canViewSources) {
             return Feed.builder()
                     .projectId(team.getProject().getProjectId())
                     .projectName(team.getProject().getName())
                     .teamId(team.getTeamId())
                     .teamName(team.getName())
+                    .canViewSources(canViewSources)
                     .items(items)
                     .nextCursor(nextCursor)
                     .hasNext(hasNext)
