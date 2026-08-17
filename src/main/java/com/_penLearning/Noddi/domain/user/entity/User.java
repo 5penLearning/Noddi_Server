@@ -39,6 +39,10 @@ public class User extends BaseEntity {
     @Column(length = 20)
     private String position;
 
+    /** EC2 로컬 저장소의 프로필 이미지 파일 키다. */
+    @Column(length = 100)
+    private String profileImageKey;
+
     @Builder
     public User(
             Organization organization,
@@ -68,6 +72,20 @@ public class User extends BaseEntity {
 
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    /** 새 프로필 이미지 키로 교체하고 이전 키를 반환한다. */
+    public String updateProfileImage(String newProfileImageKey) {
+        String previousKey = this.profileImageKey;
+        this.profileImageKey = newProfileImageKey;
+        return previousKey;
+    }
+
+    /** 프로필 이미지 연결을 해제하고 이전 키를 반환한다. */
+    public String removeProfileImage() {
+        String previousKey = this.profileImageKey;
+        this.profileImageKey = null;
+        return previousKey;
     }
 
     private static String normalizeProfileValue(String value) {
