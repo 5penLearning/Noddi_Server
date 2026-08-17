@@ -76,9 +76,9 @@ class QaQuestionCreatedEventHandlerTest {
         handler.handle(new QaQuestionCreatedEvent(1L));
 
         // Then: 스트림을 초기화하고 AI가 생성한 각 조각을 순서대로 SSE 서비스에 전달한다.
-        verify(answerStreamService).start(1L);
-        verify(answerStreamService).publishChunk(1L, "8월 20일에 ");
-        verify(answerStreamService).publishChunk(1L, "배포합니다. [근거 1]");
+        verify(answerStreamService).start(1L, 1);
+        verify(answerStreamService).publishChunk(1L, 1, "8월 20일에 ");
+        verify(answerStreamService).publishChunk(1L, 1, "배포합니다. [근거 1]");
 
         // 조각 전체를 결합한 최종 답변을 DB에 저장한 뒤 COMPLETED 이벤트를 발행한다.
         verify(answerLifecycleService).complete(1L, 1, "8월 20일에 배포합니다. [근거 1]", sources);
@@ -111,7 +111,7 @@ class QaQuestionCreatedEventHandlerTest {
         handler.handle(new QaQuestionCreatedEvent(1L));
 
         // Then: 질문을 FAILED로 변경하고 SSE 구독자에게도 실패 이벤트를 보낸다.
-        verify(answerStreamService).start(1L);
+        verify(answerStreamService).start(1L, 1);
         verify(answerLifecycleService).fail(1L, 1);
         verify(answerStreamService).publishRetrying(1L, 1);
         verify(retryScheduler).scheduleRetry(1L, 1);

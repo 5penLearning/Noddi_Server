@@ -47,7 +47,8 @@ public record QaAnswerStreamEventDto(
      */
     public static QaAnswerStreamEventDto snapshot(
             Long questionId,
-            String content
+            String content,
+            int attempt
     ) {
         return new QaAnswerStreamEventDto(
                 EventType.SNAPSHOT,
@@ -56,7 +57,7 @@ public record QaAnswerStreamEventDto(
                 QaStatus.PROCESSING,
                 content,
                 null,
-                null
+                attempt
         );
     }
 
@@ -67,7 +68,8 @@ public record QaAnswerStreamEventDto(
      */
     public static QaAnswerStreamEventDto chunk(
             Long questionId,
-            String delta
+            String delta,
+            int attempt
     ) {
         return new QaAnswerStreamEventDto(
                 EventType.CHUNK,
@@ -76,7 +78,7 @@ public record QaAnswerStreamEventDto(
                 QaStatus.PROCESSING,
                 null,
                 delta,
-                null
+                attempt
         );
     }
 

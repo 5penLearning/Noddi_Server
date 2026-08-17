@@ -55,7 +55,7 @@ public class QaAnswerStreamService {
      * 기존 SSE 연결 목록은 유지한다. 따라서 자동 재시도가 시작되더라도
      * 사용자는 같은 연결에서 새 답변을 받을 수 있다.
      */
-    public void start(Long questionId) {
+    public void start(Long questionId, int attempt) {
         StreamSession session = sessions.computeIfAbsent(
                 questionId,
                 ignored -> new StreamSession()
@@ -63,6 +63,12 @@ public class QaAnswerStreamService {
 
         //여러 스레드가 동시에 실행하지 못하게 세션별로 잠금
         synchronized (session) {
+            // 이전 시도의 늦은 시작 요청이 현재 재시도 세션을 되돌리지 못하게 한다.
+            if (attempt < session.activeAttempt) {
+                return;
+            }
+
+            session.activeAttempt = attempt;
             session.content.setLength(0);
             session.terminalEvent = null;
             session.terminatedAt = null;
@@ -175,7 +181,8 @@ public class QaAnswerStreamService {
                         emitter,
                         QaAnswerStreamEventDto.snapshot(
                                 questionId,
-                                session.content.toString()
+                                session.content.toString(),
+                                session.activeAttempt
                         )
                 );
             }
@@ -187,7 +194,7 @@ public class QaAnswerStreamService {
     /**
      * AI가 생성한 답변 조각 하나를 누적하고 모든 구독자에게 전달한다.
      */
-    public void publishChunk(Long questionId, String delta) {
+    public void publishChunk(Long questionId, int attempt, String delta) {
         /*
          * 공백 문자열도 AI 답변 구성에 필요할 수 있다.
          *
@@ -205,9 +212,9 @@ public class QaAnswerStreamService {
 
         synchronized (session) {
             /*
-             * AI 답변이 종료된 이후 뒤늦게 도착한 chunk는 무시한다.
+             * AI 답변이 종료되었거나 이전 재시도에서 뒤늦게 도착한 chunk는 무시한다.
              */
-            if (session.terminalEvent != null) {
+            if (session.terminalEvent != null || session.activeAttempt != attempt) {
                 return;
             }
 
@@ -215,7 +222,7 @@ public class QaAnswerStreamService {
 
             broadcast(
                     session,
-                    QaAnswerStreamEventDto.chunk(questionId, delta)
+                    QaAnswerStreamEventDto.chunk(questionId, delta, attempt)
             );
         }
     }
@@ -429,6 +436,9 @@ public class QaAnswerStreamService {
      * 일시적인 상태이므로 QaAnswerStreamService 내부 클래스로 둔다.
      */
     private static class StreamSession {
+
+        // 현재 SSE 세션이 받아들일 AI 생성 시도 번호
+        private int activeAttempt;
 
         // 현재까지 생성된 답변 전체
         private final StringBuilder content = new StringBuilder();

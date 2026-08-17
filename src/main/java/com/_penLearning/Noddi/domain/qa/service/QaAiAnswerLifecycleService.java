@@ -41,7 +41,7 @@ public class QaAiAnswerLifecycleService {
 
     private static final Pattern CITATION_PATTERN = Pattern.compile("\\[근거\\s*(\\d+)]");
     public static final String MANUAL_ANSWER_NOTICE =
-            "AI 답변 생성이 원활하지 않아 대상 팀에 답변을 요청했습니다. 팀원이 확인 후 직접 답변드릴 예정입니다.";
+            "담당 팀원이 질문을 확인하고 있습니다. 답변이 등록되면 알려드리겠습니다.";
 
     private final QaQuestionRepository qaQuestionRepository;
     private final QaAnswerRepository qaAnswerRepository;

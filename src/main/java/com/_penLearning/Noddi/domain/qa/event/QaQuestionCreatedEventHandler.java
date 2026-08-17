@@ -22,7 +22,6 @@ import java.util.OptionalInt;
 
 /**
  * 질문 저장이 완료된 뒤 RAG 답변 생성을 시작한다.
- *
  * 생성되는 답변 조각은 SSE 구독자에게 실시간으로 전달하고,
  * 생성이 끝나면 최종 답변과 근거를 DB에 저장한다.
  */
@@ -63,7 +62,7 @@ public class QaQuestionCreatedEventHandler {
          * SSE 초기화가 실패하더라도 AI 답변 생성과 DB 저장은 계속되어야 하므로
          * 안전하게 감싼 메서드를 사용한다.
          */
-        startStreamSafely(questionId);
+        startStreamSafely(questionId, attempt);
 
         try {
             QaQuestion question = qaQuestionRepository.findByIdWithTeam(questionId)
@@ -80,7 +79,7 @@ public class QaQuestionCreatedEventHandler {
             }
 
             String answer = generation.answerChunks()
-                    .doOnNext(chunk -> publishChunkSafely(questionId, chunk))
+                    .doOnNext(chunk -> publishChunkSafely(questionId, attempt, chunk))
                     .collectList()
                     .map(chunks -> String.join("", chunks))
                     .filter(content -> !content.isBlank())
@@ -107,9 +106,9 @@ public class QaQuestionCreatedEventHandler {
      * SSE 처리 장애가 AI 답변 생성 자체를 중단시키지 않도록
      * 스트림 시작 과정의 예외를 이 메서드 안에서 처리한다.
      */
-    private void startStreamSafely(Long questionId) {
+    private void startStreamSafely(Long questionId, int attempt) {
         try {
-            answerStreamService.start(questionId);
+            answerStreamService.start(questionId, attempt);
         } catch (RuntimeException exception) {
             log.warn(
                     "Q&A SSE stream initialization failed. questionId={}",
@@ -127,10 +126,11 @@ public class QaQuestionCreatedEventHandler {
      */
     private void publishChunkSafely(
             Long questionId,
+            int attempt,
             String chunk
     ) {
         try {
-            answerStreamService.publishChunk(questionId, chunk);
+            answerStreamService.publishChunk(questionId, attempt, chunk);
         } catch (RuntimeException exception) {
             log.warn(
                     "Q&A SSE chunk publishing failed. questionId={}",

@@ -62,10 +62,11 @@ public class QaQuestionQueryService {
     public Page<QaResponseDto.QuestionInfo> getTeamQuestions(Long requesterId, Long teamId, Pageable pageable) {
         Team targetTeam = getTeamOrThrow(teamId);
 
-        validateProjectMembership(requesterId, targetTeam);
+        User requester = validateProjectMembership(requesterId, targetTeam);
+        boolean targetTeamMember = teamMemberRepository.existsByTeamAndUser(targetTeam, requester);
 
         return qaQuestionRepository.findAllByTargetTeamWithUser(targetTeam, pageable)
-                .map(QaResponseDto.QuestionInfo::from);
+                .map(question -> QaResponseDto.QuestionInfo.from(question, targetTeamMember));
     }
 
     public QaResponseDto.Feed  getTeamFeed(Long requesterId, Long teamId, Long cursor, int size) {
@@ -115,7 +116,13 @@ public class QaQuestionQueryService {
 
                     boolean canAnswer = targetTeamMember
                             && question.getStatus() == QaStatus.MANUAL_REQUIRED;
-                    return QaResponseDto.FeedItem.of(question, answer, answerSources, canAnswer);
+                    return QaResponseDto.FeedItem.of(
+                            question,
+                            answer,
+                            answerSources,
+                            canAnswer,
+                            targetTeamMember
+                    );
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -138,7 +145,13 @@ public class QaQuestionQueryService {
         List<QaAnswerSource> sources = answer != null && targetTeamMember && !answer.isRevised()
                 ? qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId())
                 : List.of();
-        return QaResponseDto.QuestionDetail.of(question, answer, sources, canAnswer);
+        return QaResponseDto.QuestionDetail.of(
+                question,
+                answer,
+                sources,
+                canAnswer,
+                targetTeamMember
+        );
     }
 
     private Team getTeamOrThrow(Long teamId) {
