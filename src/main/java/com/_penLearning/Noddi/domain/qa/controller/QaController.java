@@ -4,10 +4,7 @@ import com._penLearning.Noddi.domain.auth.entity.AuthMember;
 import com._penLearning.Noddi.domain.qa.code.QaApi;
 import com._penLearning.Noddi.domain.qa.dto.QaRequestDto;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
-import com._penLearning.Noddi.domain.qa.service.QaAnswerStreamSubscriptionService;
-import com._penLearning.Noddi.domain.qa.service.QaQuestionCommandService;
-import com._penLearning.Noddi.domain.qa.service.QaAnswerUpdateService;
-import com._penLearning.Noddi.domain.qa.service.QaQuestionQueryService;
+import com._penLearning.Noddi.domain.qa.service.*;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +23,9 @@ public class QaController implements QaApi {
     private final QaQuestionCommandService qaQuestionCommandService;
     private final QaQuestionQueryService qaQuestionQueryService;
     private final QaAnswerUpdateService qaAnswerUpdateService;
+    private final QaAnswerRevisionQueryService qaAnswerRevisionQueryService;
     private final QaAnswerStreamSubscriptionService qaAnswerStreamSubscriptionService;
+
 
     // 질문 등록
     @Override
@@ -100,6 +99,24 @@ public class QaController implements QaApi {
                 request
         );
         return ApiResponse.onSuccess("AI 답변이 성공적으로 수정되었습니다.", response);
+    }
+
+    /**
+     * 특정 답변의 AI 최초 원문과 담당자 수정본을
+     * versionNumber 오름차순으로 조회한다.
+     */
+    @Override
+    @GetMapping("/qa/answers/{answerId}/revisions")
+    public ApiResponse<QaResponseDto.AnswerRevisionHistory> getAnswerRevisions(
+            @PathVariable Long answerId,
+            @AuthenticationPrincipal AuthMember authMember
+    ) {
+        QaResponseDto.AnswerRevisionHistory response = qaAnswerRevisionQueryService.getAnswerRevisions(
+                        authMember.getUserId(),
+                        answerId
+                );
+
+        return ApiResponse.onSuccess("답변 수정 이력 조회에 성공했습니다.", response);
     }
 
     /**
