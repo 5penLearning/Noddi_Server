@@ -99,4 +99,20 @@ public class NotificationMessageFactory {
                 + unreadCount
                 + "개의 답변을 했어요.";
     }
+
+    /**
+     * Action Item 담당자 배정 알림 문구를 생성한다.
+     *
+     * 수동 배정과 AI 자동 배정에서 공통으로 사용하므로
+     * 배정한 사용자의 이름은 문구에 포함하지 않는다.
+     */
+    public String createActionItemAssignedMessage(
+            String projectName,
+            String teamName
+    ) {
+        return createProjectTeamPrefix(
+                projectName,
+                teamName
+        ) + " 새로운 할 일이 할당됐어요.";
+    }
 }
