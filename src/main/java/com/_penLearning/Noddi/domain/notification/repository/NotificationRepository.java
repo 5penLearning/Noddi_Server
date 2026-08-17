@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface NotificationRepository
         extends JpaRepository<Notification, Long> {
@@ -132,5 +133,54 @@ public interface NotificationRepository
             @Param("projectId") Long projectId,
             @Param("teamId") Long teamId,
             @Param("type") NotificationType type
+    );
+
+    /**
+     * 묶음 X 버튼 처리 시 같은 읽음 상태의 알림을 모두 조회한다.
+     *
+     * ALL 필터에서는 같은 팀의 읽음 묶음과 안 읽은 묶음이 따로 표시되므로
+     * read 조건이 반드시 필요하다.
+     */
+    @Query("""
+        SELECT notification
+        FROM Notification notification
+        WHERE notification.user.userId = :userId
+          AND notification.projectId = :projectId
+          AND notification.teamId = :teamId
+          AND notification.type = :type
+          AND notification.read = :read
+          AND notification.hidden = false
+        """)
+    List<Notification> findVisibleGroupByReadStatus(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId,
+            @Param("teamId") Long teamId,
+            @Param("type") NotificationType type,
+            @Param("read") boolean read
+    );
+
+    /**
+     * 질문 상태가 변경돼 더 이상 유효하지 않은 알림을 찾는다.
+     *
+     * 사용자 한 명의 요청이 아니라 시스템 상태 전환에 따른 정리이므로
+     * userId 조건 없이 해당 질문을 참조하는 모든 사용자의 알림을 조회한다.
+     */
+    @Query("""
+        SELECT notification
+        FROM Notification notification
+        WHERE notification.referenceType = :referenceType
+          AND notification.referenceId = :referenceId
+          AND notification.type IN :types
+          AND notification.hidden = false
+        """)
+    List<Notification> findVisibleNotificationsByReferenceAndTypes(
+            @Param("referenceType")
+            NotificationReferenceType referenceType,
+
+            @Param("referenceId")
+            Long referenceId,
+
+            @Param("types")
+            Set<NotificationType> types
     );
 }
