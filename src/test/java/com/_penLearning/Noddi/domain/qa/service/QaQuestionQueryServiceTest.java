@@ -14,6 +14,7 @@ import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
@@ -72,6 +73,9 @@ class QaQuestionQueryServiceTest {
     private ProjectMemberRepository projectMemberRepository;
 
     @Mock
+    private TeamMemberRepository teamMemberRepository;
+
+    @Mock
     private Team targetTeam;
 
     @Mock
@@ -90,7 +94,8 @@ class QaQuestionQueryServiceTest {
                 qaAnswerSourceRepository,
                 userRepository,
                 teamRepository,
-                projectMemberRepository
+                projectMemberRepository,
+                teamMemberRepository
         );
     }
 

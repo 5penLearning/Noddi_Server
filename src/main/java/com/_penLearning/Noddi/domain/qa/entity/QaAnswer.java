@@ -57,10 +57,23 @@ public class QaAnswer extends BaseEntity {
         return new QaAnswer(question, content);
     }
 
+    public static QaAnswer createSystemNotice(QaQuestion question, String content) {
+        QaAnswer answer = new QaAnswer(question, content);
+        answer.answerType = AnswerType.SYSTEM;
+        return answer;
+    }
+
     // 현재 답변을 수정하고 마지막 수정자를 기록한다
     public void revise(String content, User reviser) {
         this.content = content;
         this.revisedBy = reviser;
+    }
+
+    public void provideByTeam(String content) {
+        this.content = content;
+        // 시스템 안내문을 실제 답변으로 교체하는 최초 작성이므로 '수정됨'으로 표시하지 않는다.
+        this.revisedBy = null;
+        this.answerType = AnswerType.TEAM;
     }
 
     // 수정 여부 판단

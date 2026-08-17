@@ -12,7 +12,8 @@ public record QaAnswerStreamEventDto(
         Long answerId,
         QaStatus status,
         String content,
-        String delta
+        String delta,
+        Integer attempt
 ) {
 
     /**
@@ -30,6 +31,7 @@ public record QaAnswerStreamEventDto(
                 questionId,
                 null,
                 status,
+                null,
                 null,
                 null
         );
@@ -53,6 +55,7 @@ public record QaAnswerStreamEventDto(
                 null,
                 QaStatus.PROCESSING,
                 content,
+                null,
                 null
         );
     }
@@ -72,7 +75,8 @@ public record QaAnswerStreamEventDto(
                 null,
                 QaStatus.PROCESSING,
                 null,
-                delta
+                delta,
+                null
         );
     }
 
@@ -94,6 +98,7 @@ public record QaAnswerStreamEventDto(
                 answerId,
                 QaStatus.ANSWERED,
                 content,
+                null,
                 null
         );
     }
@@ -109,6 +114,35 @@ public record QaAnswerStreamEventDto(
                 questionId,
                 null,
                 QaStatus.FAILED,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static QaAnswerStreamEventDto retrying(Long questionId, int attempt) {
+        return new QaAnswerStreamEventDto(
+                EventType.RETRYING,
+                questionId,
+                null,
+                QaStatus.FAILED,
+                null,
+                null,
+                attempt
+        );
+    }
+
+    public static QaAnswerStreamEventDto manualRequired(
+            Long questionId,
+            Long answerId,
+            String content
+    ) {
+        return new QaAnswerStreamEventDto(
+                EventType.MANUAL_REQUIRED,
+                questionId,
+                answerId,
+                QaStatus.MANUAL_REQUIRED,
+                content,
                 null,
                 null
         );
@@ -133,6 +167,12 @@ public record QaAnswerStreamEventDto(
 
         // 최종 답변 저장 완료
         COMPLETED("completed"),
+
+        // AI 생성 실패 후 자동 재시도 대기
+        RETRYING("retrying"),
+
+        // 자동 재시도 최종 실패 후 대상 팀 답변 대기
+        MANUAL_REQUIRED("manual_required"),
 
         // 답변 생성 실패
         FAILED("failed");

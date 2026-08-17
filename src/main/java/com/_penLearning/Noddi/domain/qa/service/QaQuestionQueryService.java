@@ -6,12 +6,14 @@ import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
+import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
+import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
@@ -45,6 +47,7 @@ public class QaQuestionQueryService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final TeamMemberRepository teamMemberRepository;
 
     // 내가 작성한 질문 목록 조회
     public Page<QaResponseDto.QuestionInfo> getMyQuestions(Long userId, Pageable pageable) {
@@ -70,7 +73,8 @@ public class QaQuestionQueryService {
 
         Team targetTeam = getTeamOrThrow(teamId);
 
-        validateProjectMembership(requesterId, targetTeam);
+        User requester = validateProjectMembership(requesterId, targetTeam);
+        boolean targetTeamMember = teamMemberRepository.existsByTeamAndUser(targetTeam, requester);
 
         List<QaQuestion> fetchedQuestions = qaQuestionRepository.findFeedByTargetTeam(
                 targetTeam, cursor, PageRequest.of(0, size + 1));
@@ -105,7 +109,9 @@ public class QaQuestionQueryService {
                     List<QaAnswerSource> answerSources =
                             answer == null ? List.of() : sourceByAnswerId.getOrDefault(answer.getAnswerId(), List.of());
 
-                    return QaResponseDto.FeedItem.of(question, answer, answerSources);
+                    boolean canAnswer = targetTeamMember
+                            && question.getStatus() == QaStatus.MANUAL_REQUIRED;
+                    return QaResponseDto.FeedItem.of(question, answer, answerSources, canAnswer);
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -120,13 +126,15 @@ public class QaQuestionQueryService {
         QaQuestion question = qaQuestionRepository.findByIdWithTeam(questionId)
                 .orElseThrow(() -> new GeneralException(QaErrorCode.QUESTION_NOT_FOUND));
 
-        validateProjectMembership(requesterId, question.getTargetTeam());
+        User requester = validateProjectMembership(requesterId, question.getTargetTeam());
+        boolean canAnswer = question.getStatus() == QaStatus.MANUAL_REQUIRED
+                && teamMemberRepository.existsByTeamAndUser(question.getTargetTeam(), requester);
 
         QaAnswer answer = qaAnswerRepository.findByQuestion(question).orElse(null);
         List<QaAnswerSource> sources = answer == null
                 ? List.of()
                 : qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId());
-        return QaResponseDto.QuestionDetail.of(question, answer, sources);
+        return QaResponseDto.QuestionDetail.of(question, answer, sources, canAnswer);
     }
 
     private Team getTeamOrThrow(Long teamId) {
@@ -135,13 +143,14 @@ public class QaQuestionQueryService {
     }
 
     // 공통 프로젝트 권한 검증 로직
-    private void validateProjectMembership(Long requesterId, Team targetTeam) {
+    private User validateProjectMembership(Long requesterId, Team targetTeam) {
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
 
         if (!projectMemberRepository.existsByProjectAndUser(targetTeam.getProject(), requester)) {
             throw new GeneralException(QaErrorCode.NOT_PROJECT_MEMBER);
         }
+        return requester;
     }
 
     private void validateFeedRequest(Long cursor, int size) {

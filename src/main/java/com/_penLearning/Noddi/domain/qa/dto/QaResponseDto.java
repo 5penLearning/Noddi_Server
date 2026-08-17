@@ -79,11 +79,13 @@ public class QaResponseDto {
         private String questionerName;
         private AnswerInfo answer;
         private List<AnswerSourceInfo> sources;
+        private boolean canAnswer;
 
         public static QuestionDetail of(
                 QaQuestion question,
                 QaAnswer answer,
-                List<QaAnswerSource> sources
+                List<QaAnswerSource> sources,
+                boolean canAnswer
         ) {
             return QuestionDetail.builder()
                     .questionId(question.getQuestionId())
@@ -95,6 +97,7 @@ public class QaResponseDto {
                     .questionerName(question.getQuestioner().getName())
                     .answer(answer != null ? AnswerInfo.from(answer) : null)
                     .sources(sources.stream().map(AnswerSourceInfo::from).toList())
+                    .canAnswer(canAnswer)
                     .build();
         }
     }
@@ -177,14 +180,21 @@ public class QaResponseDto {
         private FeedQuestion question;
         private QaStatus status;
         private FeedAnswer answer;
+        private boolean canAnswer;
 
-        public static FeedItem of(QaQuestion question, QaAnswer answer, List<QaAnswerSource> sources) {
+        public static FeedItem of(
+                QaQuestion question,
+                QaAnswer answer,
+                List<QaAnswerSource> sources,
+                boolean canAnswer
+        ) {
             return FeedItem.builder()
                     .question(FeedQuestion.from(question))
                     .status(question.getStatus())
                     .answer(
                             answer != null ? FeedAnswer.from(answer, sources) : null
                     )
+                    .canAnswer(canAnswer)
                     .build();
         }
     }

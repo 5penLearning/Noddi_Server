@@ -5,6 +5,9 @@ import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
+import com._penLearning.Noddi.domain.qa.event.QaAnswerPublishedEvent;
+import com._penLearning.Noddi.domain.qa.event.QaAnswerPublishType;
+import com._penLearning.Noddi.domain.qa.event.QaAiFinalFailureEvent;
 import com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
@@ -13,12 +16,14 @@ import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,36 +38,39 @@ import java.util.regex.Pattern;
 public class QaAiAnswerLifecycleService {
 
     private static final Pattern CITATION_PATTERN = Pattern.compile("\\[근거\\s*(\\d+)]");
+    public static final String MANUAL_ANSWER_NOTICE =
+            "AI 답변 생성이 원활하지 않아 대상 팀에 답변을 요청했습니다. 팀원이 확인 후 직접 답변드릴 예정입니다.";
 
     private final QaQuestionRepository qaQuestionRepository;
     private final QaAnswerRepository qaAnswerRepository;
     private final QaAnswerSourceRepository qaAnswerSourceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${qa.ai.max-generation-attempts:3}")
     private int maxGenerationAttempts = 3;
 
     // 같은 질문에 답변을 두 번 생성하지 않기 위한 장치
-    public boolean tryStart(Long questionId) {
+    public OptionalInt tryStart(Long questionId) {
         QaQuestion question = getQuestionWithLock(questionId);
 
         // 이벤트가 중복 전달되더라도 동일 질문의 AI 생성 작업은 하나만 실행한다.
         if (question.getStatus() == QaStatus.PROCESSING || question.getStatus() == QaStatus.ANSWERED) {
-            return false;
+            return OptionalInt.empty();
         }
         if (!question.canRetry(maxGenerationAttempts)) {
-            return false;
+            return OptionalInt.empty();
         }
 
         question.startProcessing();
-        return true;
+        return OptionalInt.of(question.getGenerationAttempts());
     }
 
     // AI가 최종 답변을 생성한 후 호출하는 메서드
     // 최종 답변과 프롬프트에 제공한 근거를 하나의 트랜잭션으로 저장한다
-    public Long complete(Long questionId, String content, List<RetrievedKnowledge> sources) {
+    public Long complete(Long questionId, int attempt, String content, List<RetrievedKnowledge> sources) {
         QaQuestion question = getQuestionWithLock(questionId);
 
-        if (question.getStatus() != QaStatus.PROCESSING) {
+        if (question.getStatus() != QaStatus.PROCESSING || !question.isCurrentAttempt(attempt)) {
             throw new GeneralException(QaErrorCode.INVALID_QUESTION_STATUS);
         }
         if (qaAnswerRepository.existsByQuestion(question)) {
@@ -90,30 +98,80 @@ public class QaAiAnswerLifecycleService {
         qaAnswerSourceRepository.saveAll(answerSources);
 
         question.markAsAnswered();
+        eventPublisher.publishEvent(new QaAnswerPublishedEvent(
+                question.getQuestionId(),
+                answer.getAnswerId(),
+                question.getQuestioner().getUserId(),
+                question.getTargetTeam().getTeamId(),
+                null,
+                QaAnswerPublishType.AI_GENERATED
+        ));
         return answer.getAnswerId();
     }
 
     // AI 호출 중 오류가 발생했을 때 호출된다
-    public void fail(Long questionId) {
+    public QaAiFailureOutcome fail(Long questionId, int attempt) {
         QaQuestion question = getQuestionWithLock(questionId);
 
-        // 완료 처리와 실패 처리가 경합한 경우 완료된 질문을 다시 FAILED로 바꾸지 않는다.
-        if (question.getStatus() == QaStatus.PROCESSING) {
-            question.markAsFailed();
+        // 이전 시도의 늦은 결과가 현재 재시도 상태를 변경하지 못하도록 차단한다.
+        if (question.getStatus() != QaStatus.PROCESSING || !question.isCurrentAttempt(attempt)) {
+            return QaAiFailureOutcome.IGNORED;
         }
+
+        if (question.canRetry(maxGenerationAttempts)) {
+            question.markAsFailed();
+            return QaAiFailureOutcome.RETRYABLE;
+        }
+
+        finalizeManualAnswer(question);
+        return QaAiFailureOutcome.FINALIZED;
     }
 
-    /** 오래 멈춘 작업을 재시도 가능한 상태로 바꾸고, 이벤트 재발행 여부를 반환한다. */
-    public boolean prepareRecovery(Long questionId, LocalDateTime threshold) {
+    /** 오래 멈춘 작업을 재시도하거나 최종 실패 상태로 확정한다. */
+    public QaAiRecoveryOutcome prepareRecovery(Long questionId, LocalDateTime threshold) {
         QaQuestion question = getQuestionWithLock(questionId);
+        QaStatus status = question.getStatus();
 
-        if (question.getUpdatedAt().isAfter(threshold) || !question.canRetry(maxGenerationAttempts)) {
-            return false;
+        if (question.getUpdatedAt().isAfter(threshold)
+                || status == QaStatus.ANSWERED
+                || status == QaStatus.MANUAL_REQUIRED) {
+            return QaAiRecoveryOutcome.NONE;
         }
-        if (question.getStatus() == QaStatus.PROCESSING) {
+
+        if (!question.canRetry(maxGenerationAttempts)) {
+            if (status == QaStatus.PROCESSING || status == QaStatus.FAILED) {
+                finalizeManualAnswer(question);
+                return QaAiRecoveryOutcome.FINALIZED;
+            }
+            return QaAiRecoveryOutcome.NONE;
+        }
+
+        if (status == QaStatus.PROCESSING) {
             question.markAsFailed();
+            return QaAiRecoveryOutcome.RETRY;
         }
-        return question.getStatus() == QaStatus.PENDING || question.getStatus() == QaStatus.FAILED;
+        return status == QaStatus.PENDING || status == QaStatus.FAILED
+                ? QaAiRecoveryOutcome.RETRY
+                : QaAiRecoveryOutcome.NONE;
+    }
+
+    private void finalizeManualAnswer(QaQuestion question) {
+        if (qaAnswerRepository.existsByQuestion(question)) {
+            throw new GeneralException(QaErrorCode.ALREADY_ANSWERED);
+        }
+
+        question.markAsManualRequired();
+        QaAnswer notice = qaAnswerRepository.save(
+                QaAnswer.createSystemNotice(question, MANUAL_ANSWER_NOTICE)
+        );
+
+        eventPublisher.publishEvent(new QaAiFinalFailureEvent(
+                question.getQuestionId(),
+                question.getQuestioner().getUserId(),
+                question.getTargetTeam().getTeamId(),
+                notice.getAnswerId(),
+                notice.getContent()
+        ));
     }
 
     private List<Integer> citedSourceIndexes(String content, int sourceCount) {

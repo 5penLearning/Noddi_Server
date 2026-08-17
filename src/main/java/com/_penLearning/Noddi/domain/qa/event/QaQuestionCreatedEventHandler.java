@@ -6,7 +6,9 @@ import com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator;
 import com._penLearning.Noddi.domain.qa.rag.generation.QaRagGeneration;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.qa.service.QaAiAnswerLifecycleService;
+import com._penLearning.Noddi.domain.qa.service.QaAiFailureOutcome;
 import com._penLearning.Noddi.domain.qa.service.QaAnswerStreamService;
+import com._penLearning.Noddi.domain.qa.scheduler.QaAiRetryScheduler;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+
+import java.util.OptionalInt;
 
 /**
  * 질문 저장이 완료된 뒤 RAG 답변 생성을 시작한다.
@@ -36,16 +40,22 @@ public class QaQuestionCreatedEventHandler {
     private final QaAiAnswerLifecycleService answerLifecycleService;
     private final QaRagAnswerGenerator answerGenerator;
     private final QaAnswerStreamService answerStreamService;
+    private final QaAiRetryScheduler retryScheduler;
 
     @Async // 질문 등록 API가 OpenAI 응답을 기다리지 않음
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT) // 질문 DB 저장이 확정된 후에만 AI 생성을 시작함
+    @TransactionalEventListener(
+            phase = TransactionPhase.AFTER_COMMIT,
+            fallbackExecution = true
+    ) // 최초 질문은 커밋 후, 이미 커밋된 FAILED 질문의 예약 재시도 이벤트는 즉시 처리한다.
     public void handle(QaQuestionCreatedEvent event) {
         Long questionId = event.questionId();
 
         // 같은 이벤트가 중복 전달되더라도 하나의 생성 작업만 PROCESSING 상태를 획득한다.
-        if (!answerLifecycleService.tryStart(questionId)) { // 중복 이벤트가 들어와도 OpenAI를 여러 번 호출하지 않도록 방지
+        OptionalInt startedAttempt = answerLifecycleService.tryStart(questionId);
+        if (startedAttempt.isEmpty()) { // 중복 이벤트가 들어와도 OpenAI를 여러 번 호출하지 않도록 방지
             return;
         }
+        int attempt = startedAttempt.getAsInt();
 
         /*
          * 이전 실패나 재시도 과정에서 남은 누적 답변을 초기화한다.
@@ -79,12 +89,16 @@ public class QaQuestionCreatedEventHandler {
                     ))
                     .block();
 
-            Long answerId = answerLifecycleService.complete(questionId, answer, generation.sources()); // 답변과 근거 저장
+            Long answerId = answerLifecycleService.complete(
+                    questionId,
+                    attempt,
+                    answer,
+                    generation.sources()
+            ); // 답변과 근거 저장
 
             publishCompletedSafely(questionId, answerId, answer);
         } catch (Exception exception) {
-            failQuestionSafely(questionId);
-            publishFailedSafely(questionId);
+            handleFailureSafely(questionId, attempt);
             log.error("Q&A AI answer generation failed. questionId={}", questionId, exception);
         }
     }
@@ -155,36 +169,36 @@ public class QaQuestionCreatedEventHandler {
         }
     }
 
-    /**
-     * AI 답변 생성 실패를 SSE 구독자에게 알린다.
-     */
-    private void publishFailedSafely(Long questionId) {
+    private void handleFailureSafely(Long questionId, int attempt) {
         try {
-            answerStreamService.publishFailed(questionId);
-        } catch (RuntimeException exception) {
-            log.warn(
-                    "Q&A SSE failure publishing failed. questionId={}",
-                    questionId,
-                    exception
-            );
-        }
-    }
-
-    /**
-     * 질문 상태를 FAILED로 변경한다.
-     *
-     * 실패 상태 저장 자체에서 추가 예외가 발생하더라도 원래 발생한
-     * AI 생성 예외가 사라지지 않게 별도로 처리한다.
-     */
-    private void failQuestionSafely(Long questionId) {
-        try {
-            answerLifecycleService.fail(questionId);
+            QaAiFailureOutcome outcome = answerLifecycleService.fail(questionId, attempt);
+            if (outcome == QaAiFailureOutcome.RETRYABLE) {
+                scheduleRetrySafely(questionId, attempt);
+                publishRetryingSafely(questionId, attempt);
+            }
         } catch (RuntimeException exception) {
             log.error(
                     "Q&A question failure state update failed. questionId={}",
                     questionId,
                     exception
             );
+        }
+    }
+
+    private void scheduleRetrySafely(Long questionId, int attempt) {
+        try {
+            retryScheduler.scheduleRetry(questionId, attempt);
+        } catch (RuntimeException exception) {
+            // 예약 실패 시에도 장기 복구 스케줄러가 FAILED 상태를 다시 수습할 수 있다.
+            log.error("Q&A AI retry scheduling failed. questionId={}", questionId, exception);
+        }
+    }
+
+    private void publishRetryingSafely(Long questionId, int attempt) {
+        try {
+            answerStreamService.publishRetrying(questionId, attempt);
+        } catch (RuntimeException exception) {
+            log.warn("Q&A retrying SSE publishing failed. questionId={}", questionId, exception);
         }
     }
 }

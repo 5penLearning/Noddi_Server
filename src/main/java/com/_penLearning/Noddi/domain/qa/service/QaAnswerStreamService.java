@@ -107,14 +107,18 @@ public class QaAnswerStreamService {
             return emitter;
         }
 
-        if (currentStatus == QaStatus.FAILED) {
+        if (currentStatus == QaStatus.MANUAL_REQUIRED) {
             sendEvent(
                     emitter,
                     QaAnswerStreamEventDto.connected(questionId, currentStatus)
             );
             sendEvent(
                     emitter,
-                    QaAnswerStreamEventDto.failed(questionId)
+                    QaAnswerStreamEventDto.manualRequired(
+                            questionId,
+                            answerId,
+                            answerContent
+                    )
             );
             emitter.complete();
             return emitter;
@@ -254,6 +258,32 @@ public class QaAnswerStreamService {
         terminate(
                 session,
                 QaAnswerStreamEventDto.failed(questionId)
+        );
+    }
+
+    /** 자동 재시도가 예정된 실패를 알리되 SSE 연결은 유지한다. */
+    public void publishRetrying(Long questionId, int attempt) {
+        StreamSession session = sessions.computeIfAbsent(
+                questionId,
+                ignored -> new StreamSession()
+        );
+
+        synchronized (session) {
+            if (session.terminalEvent == null) {
+                broadcast(session, QaAnswerStreamEventDto.retrying(questionId, attempt));
+            }
+        }
+    }
+
+    /** AI 최종 실패와 대상 팀 직접 답변 대기 상태를 전송하고 연결을 종료한다. */
+    public void publishManualRequired(Long questionId, Long answerId, String content) {
+        StreamSession session = sessions.computeIfAbsent(
+                questionId,
+                ignored -> new StreamSession()
+        );
+        terminate(
+                session,
+                QaAnswerStreamEventDto.manualRequired(questionId, answerId, content)
         );
     }
 

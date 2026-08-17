@@ -52,7 +52,10 @@ public interface QaApi {
             @Parameter(description = "질문 ID") @PathVariable Long questionId, @Parameter(hidden = true) AuthMember authMember
     );
 
-    @Operation(summary = "AI 답변 수정", description = "대상 팀 멤버가 AI 답변을 수정하고 마지막 수정자를 기록합니다.")
+    @Operation(
+            summary = "답변 작성 및 수정",
+            description = "대상 팀 멤버가 AI 답변을 수정하거나 AI 최종 실패 질문에 직접 답변합니다."
+    )
     ApiResponse<QaResponseDto.ReviseAnswer> reviseAnswer(
             @Parameter(description = "답변 ID") @PathVariable Long answerId,
             QaRequestDto.ReviseAnswer request,

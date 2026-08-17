@@ -87,7 +87,7 @@ public class QaController implements QaApi {
         return ApiResponse.onSuccess("질문 상세 조회에 성공했습니다.", response);
     }
 
-    // AI 답변 수정
+    // AI 답변 수정 또는 최종 실패 질문에 대한 대상 팀의 직접 답변
     @Override
     @PatchMapping("/qa/answers/{answerId}")
     public ApiResponse<QaResponseDto.ReviseAnswer> reviseAnswer(
@@ -99,7 +99,7 @@ public class QaController implements QaApi {
                 authMember.getUserId(),
                 request
         );
-        return ApiResponse.onSuccess("AI 답변이 성공적으로 수정되었습니다.", response);
+        return ApiResponse.onSuccess("답변이 성공적으로 저장되었습니다.", response);
     }
 
     /**

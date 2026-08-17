@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.event.QaQuestionCreatedEvent;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.qa.service.QaAiAnswerLifecycleService;
+import com._penLearning.Noddi.domain.qa.service.QaAiRecoveryOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -39,6 +40,9 @@ class QaAiRecoverySchedulerTest {
     @Mock
     private QaQuestion question;
 
+    @Mock
+    private QaQuestion anotherQuestion;
+
     @Test
     void republishesEventOnlyForRecoverableQuestion() {
         QaAiRecoveryScheduler scheduler = new QaAiRecoveryScheduler(
@@ -53,7 +57,8 @@ class QaAiRecoverySchedulerTest {
                 org.mockito.ArgumentMatchers.<Collection<QaStatus>>any(),
                 any(LocalDateTime.class)
         )).thenReturn(List.of(question));
-        when(lifecycleService.prepareRecovery(eq(7L), any(LocalDateTime.class))).thenReturn(true);
+        when(lifecycleService.prepareRecovery(eq(7L), any(LocalDateTime.class)))
+                .thenReturn(QaAiRecoveryOutcome.RETRY);
 
         scheduler.retryStalledAnswers();
 
@@ -77,10 +82,39 @@ class QaAiRecoverySchedulerTest {
                 org.mockito.ArgumentMatchers.<Collection<QaStatus>>any(),
                 any(LocalDateTime.class)
         )).thenReturn(List.of(question));
-        when(lifecycleService.prepareRecovery(eq(7L), any(LocalDateTime.class))).thenReturn(false);
+        when(lifecycleService.prepareRecovery(eq(7L), any(LocalDateTime.class)))
+                .thenReturn(QaAiRecoveryOutcome.NONE);
 
         scheduler.retryStalledAnswers();
 
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void continuesRecoveringOtherQuestionsWhenOneCandidateFails() {
+        QaAiRecoveryScheduler scheduler = new QaAiRecoveryScheduler(
+                questionRepository,
+                lifecycleService,
+                eventPublisher
+        );
+        ReflectionTestUtils.setField(scheduler, "processingTimeoutMinutes", 10L);
+
+        when(question.getQuestionId()).thenReturn(7L);
+        when(anotherQuestion.getQuestionId()).thenReturn(8L);
+        when(questionRepository.findTop100ByStatusInAndUpdatedAtBeforeOrderByUpdatedAtAsc(
+                org.mockito.ArgumentMatchers.<Collection<QaStatus>>any(),
+                any(LocalDateTime.class)
+        )).thenReturn(List.of(question, anotherQuestion));
+        when(lifecycleService.prepareRecovery(eq(7L), any(LocalDateTime.class)))
+                .thenThrow(new RuntimeException("lock timeout"));
+        when(lifecycleService.prepareRecovery(eq(8L), any(LocalDateTime.class)))
+                .thenReturn(QaAiRecoveryOutcome.RETRY);
+
+        scheduler.retryStalledAnswers();
+
+        ArgumentCaptor<QaQuestionCreatedEvent> eventCaptor =
+                ArgumentCaptor.forClass(QaQuestionCreatedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().questionId()).isEqualTo(8L);
     }
 }

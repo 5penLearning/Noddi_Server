@@ -5,7 +5,9 @@ import com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator;
 import com._penLearning.Noddi.domain.qa.rag.generation.QaRagGeneration;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
+import com._penLearning.Noddi.domain.qa.scheduler.QaAiRetryScheduler;
 import com._penLearning.Noddi.domain.qa.service.QaAiAnswerLifecycleService;
+import com._penLearning.Noddi.domain.qa.service.QaAiFailureOutcome;
 import com._penLearning.Noddi.domain.qa.service.QaAnswerStreamService;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,6 +42,9 @@ class QaQuestionCreatedEventHandlerTest {
     private QaAnswerStreamService answerStreamService;
 
     @Mock
+    private QaAiRetryScheduler retryScheduler;
+
+    @Mock
     private QaQuestion question;
 
     @Mock
@@ -48,7 +54,7 @@ class QaQuestionCreatedEventHandlerTest {
     void combinesStreamChunksAndSavesCompletedAnswer() {
         // Given: AI가 두 개의 텍스트 조각을 순서대로 생성한다.
         QaQuestionCreatedEventHandler handler = createHandler();
-        when(answerLifecycleService.tryStart(1L)).thenReturn(true);
+        when(answerLifecycleService.tryStart(1L)).thenReturn(OptionalInt.of(1));
         when(qaQuestionRepository.findByIdWithTeam(1L)).thenReturn(Optional.of(question));
         when(question.getTargetTeam()).thenReturn(team);
         when(team.getTeamId()).thenReturn(10L);
@@ -61,6 +67,7 @@ class QaQuestionCreatedEventHandlerTest {
                 )));
         when(answerLifecycleService.complete(
                 1L,
+                1,
                 "8월 20일에 배포합니다. [근거 1]",
                 sources
         )).thenReturn(201L);
@@ -74,13 +81,13 @@ class QaQuestionCreatedEventHandlerTest {
         verify(answerStreamService).publishChunk(1L, "배포합니다. [근거 1]");
 
         // 조각 전체를 결합한 최종 답변을 DB에 저장한 뒤 COMPLETED 이벤트를 발행한다.
-        verify(answerLifecycleService).complete(1L, "8월 20일에 배포합니다. [근거 1]", sources);
+        verify(answerLifecycleService).complete(1L, 1, "8월 20일에 배포합니다. [근거 1]", sources);
         verify(answerStreamService).publishCompleted(
                 1L,
                 201L,
                 "8월 20일에 배포합니다. [근거 1]"
         );
-        verify(answerLifecycleService, never()).fail(1L);
+        verify(answerLifecycleService, never()).fail(1L, 1);
         verify(answerStreamService, never()).publishFailed(1L);
     }
 
@@ -88,7 +95,8 @@ class QaQuestionCreatedEventHandlerTest {
     void marksQuestionAsFailedWhenGenerationFails() {
         // Given: OpenAI 답변 스트림 처리 중 예외가 발생한다.
         QaQuestionCreatedEventHandler handler = createHandler();
-        when(answerLifecycleService.tryStart(1L)).thenReturn(true);
+        when(answerLifecycleService.tryStart(1L)).thenReturn(OptionalInt.of(1));
+        when(answerLifecycleService.fail(1L, 1)).thenReturn(QaAiFailureOutcome.RETRYABLE);
         when(qaQuestionRepository.findByIdWithTeam(1L)).thenReturn(Optional.of(question));
         when(question.getTargetTeam()).thenReturn(team);
         when(team.getTeamId()).thenReturn(10L);
@@ -104,10 +112,12 @@ class QaQuestionCreatedEventHandlerTest {
 
         // Then: 질문을 FAILED로 변경하고 SSE 구독자에게도 실패 이벤트를 보낸다.
         verify(answerStreamService).start(1L);
-        verify(answerLifecycleService).fail(1L);
-        verify(answerStreamService).publishFailed(1L);
+        verify(answerLifecycleService).fail(1L, 1);
+        verify(answerStreamService).publishRetrying(1L, 1);
+        verify(retryScheduler).scheduleRetry(1L, 1);
         verify(answerLifecycleService, never()).complete(
                 org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyInt(),
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyList()
         );
@@ -122,7 +132,7 @@ class QaQuestionCreatedEventHandlerTest {
     void ignoresDuplicatedEventWhenGenerationCannotStart() {
         // Given: 동일 질문의 AI 작업이 이미 실행 중이거나 완료되어 tryStart가 false를 반환한다.
         QaQuestionCreatedEventHandler handler = createHandler();
-        when(answerLifecycleService.tryStart(1L)).thenReturn(false);
+        when(answerLifecycleService.tryStart(1L)).thenReturn(OptionalInt.empty());
 
         handler.handle(new QaQuestionCreatedEvent(1L));
 
@@ -131,10 +141,14 @@ class QaQuestionCreatedEventHandlerTest {
         verifyNoInteractions(answerStreamService);
         verify(answerLifecycleService, never()).complete(
                 org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyInt(),
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyList()
         );
-        verify(answerLifecycleService, never()).fail(org.mockito.ArgumentMatchers.anyLong());
+        verify(answerLifecycleService, never()).fail(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyInt()
+        );
     }
 
     private QaQuestionCreatedEventHandler createHandler() {
@@ -142,7 +156,8 @@ class QaQuestionCreatedEventHandlerTest {
                 qaQuestionRepository,
                 answerLifecycleService,
                 answerGenerator,
-                answerStreamService
+                answerStreamService,
+                retryScheduler
         );
     }
 }

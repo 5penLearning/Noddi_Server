@@ -57,7 +57,8 @@ public class QaAnswerStreamSubscriptionService {
          * ANSWERED 상태라면 메모리 스트림이 이미 사라졌거나 서버가 재시작됐어도
          * DB에 저장된 최종 답변을 즉시 전달할 수 있어야 한다.
          */
-        if (question.getStatus() == QaStatus.ANSWERED) {
+        if (question.getStatus() == QaStatus.ANSWERED
+                || question.getStatus() == QaStatus.MANUAL_REQUIRED) {
             QaAnswer answer = qaAnswerRepository.findByQuestion(question)
                     .orElseThrow(() ->
                             new GeneralException(QaErrorCode.ANSWER_NOT_FOUND)

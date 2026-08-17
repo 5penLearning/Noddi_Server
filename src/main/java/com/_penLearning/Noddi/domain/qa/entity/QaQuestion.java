@@ -71,8 +71,28 @@ public class QaQuestion extends BaseEntity {
         this.status = QaStatus.FAILED;
     }
 
+    public void markAsManualRequired() {
+        if (status != QaStatus.PROCESSING && status != QaStatus.FAILED) {
+            throw new GeneralException(QaErrorCode.INVALID_QUESTION_STATUS);
+        }
+        this.status = QaStatus.MANUAL_REQUIRED;
+    }
+
+    public void completeManualAnswer() {
+        if (status != QaStatus.MANUAL_REQUIRED) {
+            throw new GeneralException(QaErrorCode.INVALID_QUESTION_STATUS);
+        }
+        this.status = QaStatus.ANSWERED;
+    }
+
+    public boolean isCurrentAttempt(int attempt) {
+        return generationAttempts == attempt;
+    }
+
     public boolean canRetry(int maxAttempts) {
-        return status != QaStatus.ANSWERED && generationAttempts < maxAttempts;
+        return status != QaStatus.ANSWERED
+                && status != QaStatus.MANUAL_REQUIRED
+                && generationAttempts < maxAttempts;
     }
 
     private void validateProcessing() {
