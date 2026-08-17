@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 
 import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.qa.entity.SourceType;
+import com._penLearning.Noddi.domain.team.entity.Team;
+import org.springframework.data.jpa.repository.Modifying;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,4 +43,8 @@ public interface MeetingSummaryRepository extends JpaRepository<MeetingSummary, 
             @Param("sourceType") SourceType sourceType,
             Pageable pageable
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM MeetingSummary summary WHERE summary.meeting.team = :team")
+    void bulkDeleteByTeam(@Param("team") Team team);
 }

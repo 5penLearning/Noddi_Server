@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -83,4 +84,8 @@ public interface QaQuestionRepository extends JpaRepository<QaQuestion, Long> {
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM QaQuestion question WHERE question.targetTeam = :team")
+    void bulkDeleteByTeam(@Param("team") Team team);
 }

@@ -1,7 +1,9 @@
 package com._penLearning.Noddi.domain.actionItem.repository;
 
 import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
+import com._penLearning.Noddi.domain.team.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -44,4 +46,8 @@ public interface ActionItemRepository extends JpaRepository<ActionItem, Long> {
     List<ActionItem> findAllByAssigneeIdWithDetails(
             @Param("userId") Long userId
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM ActionItem actionItem WHERE actionItem.meeting.team = :team")
+    void bulkDeleteByTeam(@Param("team") Team team);
 }

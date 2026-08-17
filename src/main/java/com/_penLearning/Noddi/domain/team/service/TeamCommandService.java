@@ -1,19 +1,16 @@
 package com._penLearning.Noddi.domain.team.service;
 
-import com._penLearning.Noddi.domain.announcement.repository.AnnouncementRepository;
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
-import com._penLearning.Noddi.domain.qa.rag.indexing.KnowledgeDeletionService;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.dto.TeamRequestDto;
 import com._penLearning.Noddi.domain.team.entity.*;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
-import com._penLearning.Noddi.domain.teamPage.repository.TeamPageRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
@@ -34,9 +31,7 @@ public class TeamCommandService {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final TeamInviteExpirationService teamInviteExpirationService;
-    private final TeamPageRepository teamPageRepository;
-    private final KnowledgeDeletionService knowledgeDeletionService;
-    private final AnnouncementRepository announcementRepository;
+    private final TeamResourceDeletionService teamResourceDeletionService;
 
     // 팀 생성 (생성자는 자동으로 LEADER 역할 부여)
     @Transactional
@@ -156,14 +151,8 @@ public class TeamCommandService {
 
         validateTeamLeader(team, requester);
 
-        // 팀 소유 자료가 외부 Vector DB에 남지 않도록 색인부터 정리한다.
-        knowledgeDeletionService.deleteTeamKnowledge(teamId);
-
-        // 하위 데이터 일괄 삭제 (FK 제약조건 방어)
-        announcementRepository.bulkDeleteByTeam(team);
-        teamPageRepository.bulkDeleteByTeam(team);
-        teamInviteRepository.deleteAllByTeam(team);
-        teamMemberRepository.deleteAllByTeam(team);
+        // 회의·Q&A를 포함한 팀 소유 데이터를 FK 의존 순서대로 일괄 삭제한다.
+        teamResourceDeletionService.deleteAllOwnedBy(team);
 
         // 팀 삭제
         teamRepository.delete(team);
