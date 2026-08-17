@@ -14,6 +14,7 @@ import com._penLearning.Noddi.global.security.JwtProvider;
 import com._penLearning.Noddi.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService {
+
+    private static final int PROFILE_OPTION_LIMIT = 20;
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -81,5 +84,18 @@ public class AuthService {
 
         // 4. AuthLoginResponseDto 형태로 변환하여 반환
         return AuthResponseDto.AuthLoginResponseDto.of(user.getUserId(), tokenResponse.getAccessToken());
+    }
+
+    /** 선택한 조직에서 실제 사용 중인 부서와 직함을 회원가입 자동완성 목록으로 제공한다. */
+    public AuthResponseDto.SignupProfileOptions getSignupProfileOptions(Long organizationId) {
+        if (!organizationRepository.existsById(organizationId)) {
+            throw new GeneralException(OrganizationErrorCode.ORGANIZATION_NOT_FOUND);
+        }
+
+        PageRequest limit = PageRequest.of(0, PROFILE_OPTION_LIMIT);
+        return AuthResponseDto.SignupProfileOptions.of(
+                userRepository.findPopularDepartments(organizationId, limit),
+                userRepository.findPopularPositions(organizationId, limit)
+        );
     }
 }

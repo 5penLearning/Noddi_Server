@@ -23,6 +23,12 @@ public interface AuthApi {
     ApiResponse<AuthResponseDto.AuthSignupResponseDto> signup( AuthRequestDto.SignupRequestDto requestDto
     );
 
+    @Operation(
+            summary = "회원가입 부서·직함 추천 조회",
+            description = "선택한 조직의 기존 회원이 입력한 부서와 직함을 사용 빈도순으로 최대 20개씩 조회합니다."
+    )
+    ApiResponse<AuthResponseDto.SignupProfileOptions> getSignupProfileOptions(Long organizationId);
+
     @Operation(summary = "일반 로그인", description = "이메일과 비밀번호로 로그인하여 JWT Access Token을 발급받습니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공"),
