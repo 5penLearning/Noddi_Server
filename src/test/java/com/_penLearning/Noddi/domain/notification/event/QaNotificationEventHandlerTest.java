@@ -3,6 +3,7 @@ package com._penLearning.Noddi.domain.notification.event;
 import com._penLearning.Noddi.domain.notification.entity.NotificationReferenceType;
 import com._penLearning.Noddi.domain.notification.entity.NotificationType;
 import com._penLearning.Noddi.domain.notification.message.NotificationMessageFactory;
+import com._penLearning.Noddi.domain.notification.service.NotificationCommandService;
 import com._penLearning.Noddi.domain.notification.service.NotificationCreateService;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.qa.event.QaAiFinalFailureEvent;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.when;
 class QaNotificationEventHandlerTest {
 
     @Mock private NotificationCreateService notificationCreateService;
+    @Mock private NotificationCommandService notificationCommandService;
     @Mock private TeamRepository teamRepository;
     @Mock private TeamMemberRepository teamMemberRepository;
     @Mock private NotificationMessageFactory messageFactory;
@@ -47,6 +50,7 @@ class QaNotificationEventHandlerTest {
     void setUp() {
         handler = new QaNotificationEventHandler(
                 notificationCreateService,
+                notificationCommandService,
                 teamRepository,
                 teamMemberRepository,
                 messageFactory
@@ -167,6 +171,13 @@ class QaNotificationEventHandlerTest {
         handler.handleAnswerPublished(event);
 
         // Then: 질문자에게 새 답변이 등록됐다는 알림을 생성한다.
+        verify(notificationCommandService).resolveQuestionNotifications(
+                100L,
+                Set.of(
+                        NotificationType.QA_ANSWER_WAITING,
+                        NotificationType.QA_AI_FAILED
+                )
+        );
         verify(notificationCreateService).createNotification(
                 10L,
                 NotificationType.QA_ANSWERED,
@@ -202,6 +213,10 @@ class QaNotificationEventHandlerTest {
         handler.handleAnswerPublished(event);
 
         // Then: 질문자에게 동일 질문의 안 읽은 수정 알림을 생성하거나 갱신하도록 요청한다.
+        verify(notificationCommandService).resolveQuestionNotifications(
+                100L,
+                Set.of(NotificationType.QA_AI_REVIEW_REQUIRED)
+        );
         verify(notificationCreateService).createOrUpdateUnread(
                 10L,
                 NotificationType.QA_ANSWER_REVISED,
@@ -230,6 +245,14 @@ class QaNotificationEventHandlerTest {
         handler.handleAnswerPublished(event);
 
         // Then: 자신에게 자신의 행동을 알리는 알림은 만들지 않는다.
+        // 다만 이미 존재하는 답변 대기·실패 알림은 반드시 정리한다.
+        verify(notificationCommandService).resolveQuestionNotifications(
+                100L,
+                Set.of(
+                        NotificationType.QA_ANSWER_WAITING,
+                        NotificationType.QA_AI_FAILED
+                )
+        );
         verifyNoInteractions(notificationCreateService);
         verifyNoInteractions(messageFactory);
         verify(teamMemberRepository, never()).findAllByTeamWithUser(targetTeam);
