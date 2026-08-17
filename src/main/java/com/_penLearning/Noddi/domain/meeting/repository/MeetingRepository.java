@@ -27,6 +27,10 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     List<Meeting> findAllByTeam(Team team);
     Optional<Meeting> findByRoomName(String roomName);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Meeting meeting WHERE meeting.team = :team")
+    void bulkDeleteByTeam(@Param("team") Team team);
+
     // Daily 웹훅 처리 중 동일 회의를 동시에 수정하지 못하도록 잠금을 건다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Meeting m WHERE m.roomName = :roomName")
