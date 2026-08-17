@@ -272,6 +272,9 @@ public class NotificationQueryService {
 
             case TEAM_INVITE, PROJECT_INVITE ->
                     NotificationNavigationType.MY_INVITATIONS;
+
+            case ACTION_ITEM ->
+                    NotificationNavigationType.HOME_ACTION_ITEMS;
         };
     }
 
