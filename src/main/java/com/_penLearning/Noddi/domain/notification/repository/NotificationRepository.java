@@ -167,7 +167,7 @@ public interface NotificationRepository
      * - 초대 수락 또는 거절
      * - Action Item 담당자 변경 또는 삭제
      * 사용자 한 명의 요청이 아니라 시스템 상태 전환에 따른 정리이므로
-     * userId 조건 없이 해당 질문을 참조하는 모든 사용자의 알림을 조회한다.
+     * userId 조건 없이 해당 리소스를 참조하는 모든 사용자의 알림을 조회한다.
      */
     @Query("""
         SELECT notification

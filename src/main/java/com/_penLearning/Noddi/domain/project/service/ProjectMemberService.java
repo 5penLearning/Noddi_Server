@@ -4,6 +4,7 @@ import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.dto.ProjectMemberResponseDto;
 import com._penLearning.Noddi.domain.project.entity.*;
 import com._penLearning.Noddi.domain.project.event.ProjectInviteCreatedEvent;
+import com._penLearning.Noddi.domain.project.event.ProjectInviteRespondedEvent;
 import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
@@ -127,6 +128,8 @@ public class ProjectMemberService {
         } else {
             invite.reject();
         }
+
+        eventPublisher.publishEvent(new ProjectInviteRespondedEvent(inviteId));
     }
 
     // 프로젝트 멤버 조회
