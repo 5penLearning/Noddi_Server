@@ -35,9 +35,6 @@ public class QaAiAnswerLifecycleService {
     private final QaQuestionRepository qaQuestionRepository;
     private final QaAnswerRepository qaAnswerRepository;
     private final QaAnswerSourceRepository qaAnswerSourceRepository;
-    private final QaQuestionRepository qaQuestionRepository;
-    private final QaAnswerRepository qaAnswerRepository;
-    private final QaAnswerSourceRepository qaAnswerSourceRepository;
     private final QaAnswerRevisionRepository qaAnswerRevisionRepository;
 
     @Value("${qa.ai.max-generation-attempts:3}")
