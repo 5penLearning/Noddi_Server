@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.qa.service;
 
 import com._penLearning.Noddi.domain.qa.dto.QaAnswerStreamEventDto;
+import com._penLearning.Noddi.domain.qa.dto.QaResponseStatus;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -99,7 +100,7 @@ public class QaAnswerStreamService {
         if (currentStatus == QaStatus.ANSWERED) {
             sendEvent(
                     emitter,
-                    QaAnswerStreamEventDto.connected(questionId, currentStatus)
+                    QaAnswerStreamEventDto.connected(questionId, QaResponseStatus.from(currentStatus, false))
             );
             sendEvent(
                     emitter,
@@ -116,11 +117,11 @@ public class QaAnswerStreamService {
         if (currentStatus == QaStatus.MANUAL_REQUIRED) {
             sendEvent(
                     emitter,
-                    QaAnswerStreamEventDto.connected(questionId, currentStatus)
+                    QaAnswerStreamEventDto.connected(questionId, QaResponseStatus.TEAM_ANSWER_PENDING)
             );
             sendEvent(
                     emitter,
-                    QaAnswerStreamEventDto.manualRequired(
+                    QaAnswerStreamEventDto.teamAnswerPending(
                             questionId,
                             answerId,
                             answerContent
@@ -149,7 +150,7 @@ public class QaAnswerStreamService {
 
             boolean connected = sendEvent(
                     emitter,
-                    QaAnswerStreamEventDto.connected(questionId, currentStatus)
+                    QaAnswerStreamEventDto.connected(questionId, QaResponseStatus.from(currentStatus, true))
             );
 
             if (!connected) {
@@ -283,14 +284,14 @@ public class QaAnswerStreamService {
     }
 
     /** AI 최종 실패와 대상 팀 직접 답변 대기 상태를 전송하고 연결을 종료한다. */
-    public void publishManualRequired(Long questionId, Long answerId, String content) {
+    public void publishTeamAnswerPending(Long questionId, Long answerId, String content) {
         StreamSession session = sessions.computeIfAbsent(
                 questionId,
                 ignored -> new StreamSession()
         );
         terminate(
                 session,
-                QaAnswerStreamEventDto.manualRequired(questionId, answerId, content)
+                QaAnswerStreamEventDto.teamAnswerPending(questionId, answerId, content)
         );
     }
 

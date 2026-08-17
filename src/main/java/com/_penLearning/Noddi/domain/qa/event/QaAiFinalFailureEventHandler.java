@@ -18,7 +18,7 @@ public class QaAiFinalFailureEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(QaAiFinalFailureEvent event) {
         try {
-            answerStreamService.publishManualRequired(
+            answerStreamService.publishTeamAnswerPending(
                     event.questionId(),
                     event.answerId(),
                     event.noticeContent()

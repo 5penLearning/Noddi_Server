@@ -202,4 +202,32 @@ class QaAnswerStreamServiceTest {
             );
         }
     }
+
+    @Test
+    void hidesFinalAiFailureAndSendsTeamAnswerPendingEvent() throws Exception {
+        // Given: 질문자가 AI 답변 생성 스트림을 구독하고 있다.
+        service.start(101L, 3);
+        MvcResult subscription = openProcessingStream();
+
+        // When: AI 생성이 최종 실패하여 담당 팀의 직접 답변을 기다리게 된다.
+        service.publishTeamAnswerPending(
+                101L,
+                201L,
+                "담당 팀원이 질문을 확인하고 있습니다. 답변이 등록되면 알려드리겠습니다."
+        );
+
+        mockMvc.perform(asyncDispatch(subscription))
+                .andExpect(status().isOk());
+
+        String body = subscription.getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        // Then: 질문자에게 AI 실패 및 수동 답변 필요 상태를 노출하지 않는다.
+        assertThat(body)
+                .contains("event:team_answer_pending")
+                .contains("\"status\":\"TEAM_ANSWER_PENDING\"")
+                .contains("담당 팀원이 질문을 확인하고 있습니다.")
+                .doesNotContain("event:manual_required")
+                .doesNotContain("\"status\":\"MANUAL_REQUIRED\"");
+    }
 }
