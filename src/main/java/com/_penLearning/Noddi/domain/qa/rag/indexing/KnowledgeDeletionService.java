@@ -29,6 +29,12 @@ public class KnowledgeDeletionService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deleteTeamPageKnowledge(Long pageId) {
+        knowledgeIndexRepository.findBySourceIdAndSourceType(pageId, SourceType.TEAM_TEXT)
+                .ifPresent(index -> deleteIndexes(List.of(index)));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void deleteTeamKnowledge(Long teamId) {
         deleteIndexes(knowledgeIndexRepository.findAllByTeam_TeamId(teamId));
     }

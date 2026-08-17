@@ -8,12 +8,15 @@ import com._penLearning.Noddi.domain.teamPage.code.TeamPageErrorCode;
 import com._penLearning.Noddi.domain.teamPage.dto.TeamPageRequestDto;
 import com._penLearning.Noddi.domain.teamPage.dto.TeamPageResponseDto;
 import com._penLearning.Noddi.domain.teamPage.entity.TeamPage;
+import com._penLearning.Noddi.domain.teamPage.event.TeamPageChangedEvent;
+import com._penLearning.Noddi.domain.teamPage.event.TeamPageDeletedEvent;
 import com._penLearning.Noddi.domain.teamPage.repository.TeamPageRepository;
 import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,7 @@ public class TeamPageService {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public TeamPageResponseDto.Result createPage(Long teamId, Long authorId, TeamPageRequestDto.Create request){
@@ -50,6 +54,7 @@ public class TeamPageService {
                 .build();
 
         TeamPage savedPage = teamPageRepository.save(teamPage);
+        eventPublisher.publishEvent(new TeamPageChangedEvent(savedPage.getPageId()));
         return TeamPageResponseDto.Result.from(savedPage);
     }
 
@@ -73,6 +78,7 @@ public class TeamPageService {
         }
 
         teamPage.update(request.getTitle(), request.getContent());
+        eventPublisher.publishEvent(new TeamPageChangedEvent(teamPage.getPageId()));
 
         return TeamPageResponseDto.Result.from(teamPage);
     }
@@ -121,5 +127,6 @@ public class TeamPageService {
            throw new GeneralException(TeamPageErrorCode.YOU_ARE_NOT_AUTHOR);
         }
         teamPageRepository.delete(teamPage);
+        eventPublisher.publishEvent(new TeamPageDeletedEvent(teamPage.getPageId()));
     }
 }
