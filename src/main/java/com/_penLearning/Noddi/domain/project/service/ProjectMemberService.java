@@ -3,6 +3,7 @@ package com._penLearning.Noddi.domain.project.service;
 import com._penLearning.Noddi.domain.project.code.ProjectErrorCode;
 import com._penLearning.Noddi.domain.project.dto.ProjectMemberResponseDto;
 import com._penLearning.Noddi.domain.project.entity.*;
+import com._penLearning.Noddi.domain.project.event.ProjectInviteCreatedEvent;
 import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
@@ -12,6 +13,7 @@ import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +32,8 @@ public class ProjectMemberService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectInviteExpirationService projectInviteExpirationService;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${scheduler.invite.valid-days:7}")
     private int inviteValidDays;
@@ -64,6 +68,14 @@ public class ProjectMemberService {
                 .invitee(targetUser)
                 .build();
         projectInviteRepository.save(invite);
+
+        eventPublisher.publishEvent(new ProjectInviteCreatedEvent(
+                invite.getInviteId(),
+                project.getProjectId(),
+                project.getName(),
+                requester.getName(),
+                targetUser.getUserId()
+        ));
     }
 
     // 받은 초대장 조회

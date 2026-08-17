@@ -8,6 +8,7 @@ import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
 import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.dto.TeamRequestDto;
 import com._penLearning.Noddi.domain.team.entity.*;
+import com._penLearning.Noddi.domain.team.event.TeamInviteCreatedEvent;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
@@ -16,6 +17,7 @@ import com._penLearning.Noddi.domain.user.entity.User;
 import com._penLearning.Noddi.domain.user.repository.UserRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,8 @@ public class TeamCommandService {
     private final UserRepository userRepository;
     private final TeamInviteExpirationService teamInviteExpirationService;
     private final TeamResourceDeletionService teamResourceDeletionService;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     // 팀 생성 (생성자는 자동으로 LEADER 역할 부여)
     @Transactional
@@ -84,6 +88,16 @@ public class TeamCommandService {
                 .invitee(targetUser)
                 .build();
         teamInviteRepository.save(invite);
+
+        eventPublisher.publishEvent(new TeamInviteCreatedEvent(
+                invite.getInviteId(),
+                team.getProject().getProjectId(),
+                team.getProject().getName(),
+                team.getTeamId(),
+                team.getName(),
+                requester.getName(),
+                targetUser.getUserId()
+        ));
     }
 
     // 팀 초대 응답
