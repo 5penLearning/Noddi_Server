@@ -76,7 +76,23 @@ public interface QaApi {
                 - failed: 답변 생성 실패
                 """
     )
-    SseEmitter subscribeAnswerStream(@Parameter(description = "질문 ID") @PathVariable Long questionId,
+    SseEmitter subscribeAnswerStream(@Parameter(description = "질문 ID")
+                                     @PathVariable Long questionId,
                                      @Parameter(hidden = true) AuthMember authMember);
-
+    @Operation(
+            summary = "AI 답변 수정 이력 조회",
+            description = """
+                특정 답변의 AI 최초 원문과 담당자 수정본을 조회합니다.
+                수정 이력은 versionNumber 오름차순으로 반환됩니다.
+                같은 프로젝트의 구성원은 모든 버전의 답변 내용,
+                수정자, 생성 시간을 조회할 수 있습니다.
+                AI 최초 답변의 회의록 및 팀 페이지 출처는
+                질문 대상 팀 구성원에게만 제공됩니다.
+                """
+    )
+    ApiResponse<QaResponseDto.AnswerRevisionHistory> getAnswerRevisions(
+            @Parameter(description = "답변 ID")
+            @PathVariable Long answerId,
+            @Parameter(hidden = true) AuthMember authMember
+    );
 }

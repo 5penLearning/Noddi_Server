@@ -20,7 +20,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * 질문에 생성된 AI 답변이다.
- * 담당자가 수정하면 기존 내용을 보관하지 않고 현재 답변을 변경하며, 마지막 수정자만 기록한다.
+ * 담당자가 수정하면 현재 답변을 변경하고 마지막 수정자를 기록한다.
+ * 버전별 내용은 QaAnswerRevision에 별도로 누적한다.
  */
 @Entity
 @Getter

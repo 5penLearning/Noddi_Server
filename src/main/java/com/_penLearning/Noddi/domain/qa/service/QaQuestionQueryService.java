@@ -95,7 +95,11 @@ public class QaQuestionQueryService {
                         Function.identity()
                 ));
 
-        List<QaAnswerSource> sources = findSources(answers);
+        // 출처는 대상 팀원이 AI 최초 답변을 보는 경우에만 조회한다.
+        List<QaAnswer> sourceVisibleAnswers = targetTeamMember
+                ? answers.stream().filter(answer -> !answer.isRevised()).toList()
+                : List.of();
+        List<QaAnswerSource> sources = findSources(sourceVisibleAnswers);
 
         Map<Long, List<QaAnswerSource>> sourceByAnswerId = sources.stream()
                 .collect(Collectors.groupingBy(
@@ -117,7 +121,7 @@ public class QaQuestionQueryService {
 
         Collections.reverse(items);
 
-        return QaResponseDto.Feed.of(targetTeam, items, nextCursor, hasNext);
+        return QaResponseDto.Feed.of(targetTeam, items, nextCursor, hasNext, targetTeamMember);
 
     }
 
@@ -127,13 +131,13 @@ public class QaQuestionQueryService {
                 .orElseThrow(() -> new GeneralException(QaErrorCode.QUESTION_NOT_FOUND));
 
         User requester = validateProjectMembership(requesterId, question.getTargetTeam());
-        boolean canAnswer = question.getStatus() == QaStatus.MANUAL_REQUIRED
-                && teamMemberRepository.existsByTeamAndUser(question.getTargetTeam(), requester);
+        boolean targetTeamMember = teamMemberRepository.existsByTeamAndUser(question.getTargetTeam(), requester);
+        boolean canAnswer = question.getStatus() == QaStatus.MANUAL_REQUIRED && targetTeamMember;
 
         QaAnswer answer = qaAnswerRepository.findByQuestion(question).orElse(null);
-        List<QaAnswerSource> sources = answer == null
-                ? List.of()
-                : qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId());
+        List<QaAnswerSource> sources = answer != null && targetTeamMember && !answer.isRevised()
+                ? qaAnswerSourceRepository.findByAnswer_AnswerIdOrderByCitationIndexAsc(answer.getAnswerId())
+                : List.of();
         return QaResponseDto.QuestionDetail.of(question, answer, sources, canAnswer);
     }
 

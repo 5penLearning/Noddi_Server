@@ -2,6 +2,7 @@ package com._penLearning.Noddi.domain.qa.service;
 
 import com._penLearning.Noddi.domain.qa.code.QaErrorCode;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerRevision;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
@@ -11,6 +12,7 @@ import com._penLearning.Noddi.domain.qa.event.QaAiFinalFailureEvent;
 import com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerRevisionRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.global.exception.GeneralException;
@@ -44,6 +46,7 @@ public class QaAiAnswerLifecycleService {
     private final QaQuestionRepository qaQuestionRepository;
     private final QaAnswerRepository qaAnswerRepository;
     private final QaAnswerSourceRepository qaAnswerSourceRepository;
+    private final QaAnswerRevisionRepository qaAnswerRevisionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Value("${qa.ai.max-generation-attempts:3}")
@@ -82,6 +85,10 @@ public class QaAiAnswerLifecycleService {
 
         // AI가 생성한 최초 답변을 저장한다. 이후 담당자 수정 시 현재 내용으로 교체될 수 있다.
         QaAnswer answer = qaAnswerRepository.save(QaAnswer.createAiAnswer(question, content));
+
+        // 수정 이력의 기준이 되는 AI 원문을 1번 버전으로 보존한다.
+        qaAnswerRevisionRepository.save(QaAnswerRevision.createAiInitial(answer));
+
         List<QaAnswerSource> answerSources = citedSourceIndexes.stream()
                 .map(citationIndex -> {
                     RetrievedKnowledge source = sources.get(citationIndex - 1);

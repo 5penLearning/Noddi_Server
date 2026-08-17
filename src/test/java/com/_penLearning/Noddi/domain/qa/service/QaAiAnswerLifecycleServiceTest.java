@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.qa.service;
 
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
+import com._penLearning.Noddi.domain.qa.entity.QaAnswerRevision;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerSource;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
@@ -10,6 +11,7 @@ import com._penLearning.Noddi.domain.qa.event.QaAnswerPublishedEvent;
 import com._penLearning.Noddi.domain.qa.event.QaAnswerPublishType;
 import com._penLearning.Noddi.domain.qa.rag.retrieval.RetrievedKnowledge;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerRevisionRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
@@ -47,6 +49,9 @@ class QaAiAnswerLifecycleServiceTest {
     private QaAnswerSourceRepository qaAnswerSourceRepository;
 
     @Mock
+    private QaAnswerRevisionRepository qaAnswerRevisionRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
@@ -67,6 +72,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         List<RetrievedKnowledge> sources = List.of(
@@ -96,6 +102,7 @@ class QaAiAnswerLifecycleServiceTest {
         when(qaAnswerRepository.existsByQuestion(question)).thenReturn(false);
         when(qaAnswerRepository.save(any(QaAnswer.class))).thenReturn(answer);
         when(answer.getAnswerId()).thenReturn(100L);
+        when(answer.getContent()).thenReturn("첫 번째 자료만 사용한 답변입니다. [근거 1]");
         stubAnswerPublishedEventPayload();
 
         Long answerId = service.complete(1L, 1, "첫 번째 자료만 사용한 답변입니다. [근거 1]", sources);
@@ -123,6 +130,11 @@ class QaAiAnswerLifecycleServiceTest {
                         )
                 );
         verify(question).markAsAnswered();
+        ArgumentCaptor<QaAnswerRevision> revisionCaptor = ArgumentCaptor.forClass(QaAnswerRevision.class);
+        verify(qaAnswerRevisionRepository).save(revisionCaptor.capture());
+        assertThat(revisionCaptor.getValue().getVersionNumber()).isEqualTo(1);
+        assertThat(revisionCaptor.getValue().getContent())
+                .isEqualTo("첫 번째 자료만 사용한 답변입니다. [근거 1]");
         ArgumentCaptor<QaAnswerPublishedEvent> eventCaptor =
                 ArgumentCaptor.forClass(QaAnswerPublishedEvent.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -142,6 +154,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         List<RetrievedKnowledge> sources = List.of(new RetrievedKnowledge(
@@ -173,6 +186,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         List<RetrievedKnowledge> sources = List.of(new RetrievedKnowledge(
@@ -191,6 +205,9 @@ class QaAiAnswerLifecycleServiceTest {
         when(qaAnswerRepository.existsByQuestion(question)).thenReturn(false);
         when(qaAnswerRepository.save(any(QaAnswer.class))).thenReturn(answer);
         when(answer.getAnswerId()).thenReturn(100L);
+        when(answer.getContent()).thenReturn(
+                com._penLearning.Noddi.domain.qa.rag.generation.QaRagAnswerGenerator.INSUFFICIENT_EVIDENCE_MESSAGE
+        );
         stubAnswerPublishedEventPayload();
 
         Long answerId = service.complete(
@@ -211,6 +228,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(10);
@@ -230,6 +248,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(10);
@@ -247,6 +266,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         com._penLearning.Noddi.domain.user.entity.User questioner = mock(
@@ -282,6 +302,7 @@ class QaAiAnswerLifecycleServiceTest {
         assertThat(eventCaptor.getValue().answerId()).isEqualTo(30L);
         assertThat(eventCaptor.getValue().noticeContent())
                 .isEqualTo(QaAiAnswerLifecycleService.MANUAL_ANSWER_NOTICE);
+        verifyNoInteractions(qaAnswerRevisionRepository);
     }
 
     @Test
@@ -290,6 +311,7 @@ class QaAiAnswerLifecycleServiceTest {
                 qaQuestionRepository,
                 qaAnswerRepository,
                 qaAnswerSourceRepository,
+                qaAnswerRevisionRepository,
                 eventPublisher
         );
         when(qaQuestionRepository.findByIdWithLock(1L)).thenReturn(Optional.of(question));
