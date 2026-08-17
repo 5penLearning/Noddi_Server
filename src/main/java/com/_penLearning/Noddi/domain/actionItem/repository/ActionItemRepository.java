@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.actionItem.repository;
 
 import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -50,4 +51,8 @@ public interface ActionItemRepository extends JpaRepository<ActionItem, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM ActionItem actionItem WHERE actionItem.meeting.team = :team")
     void bulkDeleteByTeam(@Param("team") Team team);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM ActionItem actionItem WHERE actionItem.meeting.team.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }

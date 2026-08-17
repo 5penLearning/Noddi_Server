@@ -2,6 +2,7 @@ package com._penLearning.Noddi.domain.qa.repository;
 
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaQuestion;
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -46,4 +47,8 @@ public interface QaAnswerRepository extends JpaRepository<QaAnswer, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM QaAnswer answer WHERE answer.question.targetTeam = :team")
     void bulkDeleteByTeam(@Param("team") Team team);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM QaAnswer answer WHERE answer.question.targetTeam.project = :project")
+    void bulkDeleteByProject(@Param("project") Project project);
 }
