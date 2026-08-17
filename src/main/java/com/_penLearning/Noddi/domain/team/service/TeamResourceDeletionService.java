@@ -6,6 +6,7 @@ import com._penLearning.Noddi.domain.meeting.repository.MeetingParticipantReposi
 import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
 import com._penLearning.Noddi.domain.qa.rag.indexing.KnowledgeDeletionService;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerRevisionRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
@@ -25,6 +26,7 @@ public class TeamResourceDeletionService {
 
     private final KnowledgeDeletionService knowledgeDeletionService;
     private final QaAnswerSourceRepository qaAnswerSourceRepository;
+    private final QaAnswerRevisionRepository qaAnswerRevisionRepository;
     private final QaAnswerRepository qaAnswerRepository;
     private final QaQuestionRepository qaQuestionRepository;
     private final ActionItemRepository actionItemRepository;
@@ -45,6 +47,7 @@ public class TeamResourceDeletionService {
 
         // 질문을 지우기 전에 답변의 출처와 답변부터 삭제해야 한다.
         qaAnswerSourceRepository.bulkDeleteByTeam(team);
+        qaAnswerRevisionRepository.bulkDeleteByTeam(team);
         qaAnswerRepository.bulkDeleteByTeam(team);
         qaQuestionRepository.bulkDeleteByTeam(team);
 

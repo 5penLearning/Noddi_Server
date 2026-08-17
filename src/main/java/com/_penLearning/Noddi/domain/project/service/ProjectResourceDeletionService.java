@@ -9,6 +9,7 @@ import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.qa.rag.indexing.KnowledgeDeletionService;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerRepository;
+import com._penLearning.Noddi.domain.qa.repository.QaAnswerRevisionRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaAnswerSourceRepository;
 import com._penLearning.Noddi.domain.qa.repository.QaQuestionRepository;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
@@ -29,6 +30,7 @@ public class ProjectResourceDeletionService {
     private final KnowledgeDeletionService knowledgeDeletionService;
     private final QaAnswerSourceRepository qaAnswerSourceRepository;
     private final QaAnswerRepository qaAnswerRepository;
+    private final QaAnswerRevisionRepository qaAnswerRevisionRepository;
     private final QaQuestionRepository qaQuestionRepository;
     private final ActionItemRepository actionItemRepository;
     private final MeetingParticipantRepository meetingParticipantRepository;
@@ -49,6 +51,7 @@ public class ProjectResourceDeletionService {
 
         // Q&A 질문을 참조하는 답변 출처와 답변부터 삭제한다.
         qaAnswerSourceRepository.bulkDeleteByProject(project);
+        qaAnswerRevisionRepository.bulkDeleteByProject(project);
         qaAnswerRepository.bulkDeleteByProject(project);
         qaQuestionRepository.bulkDeleteByProject(project);
 

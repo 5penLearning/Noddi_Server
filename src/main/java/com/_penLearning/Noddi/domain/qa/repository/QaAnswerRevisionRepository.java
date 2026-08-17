@@ -1,8 +1,11 @@
 package com._penLearning.Noddi.domain.qa.repository;
 
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswer;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerRevision;
+import com._penLearning.Noddi.domain.team.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -47,4 +50,24 @@ public interface QaAnswerRevisionRepository
     List<QaAnswerRevision> findAllByAnswerWithReviserOrderByVersionNumberAsc(
             @Param("answer") QaAnswer answer
     );
+
+    /**
+     * 팀 삭제 전에 해당 팀 질문의 모든 답변 수정 이력을 삭제한다.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        DELETE FROM QaAnswerRevision revision
+        WHERE revision.answer.question.targetTeam = :team
+        """)
+    void bulkDeleteByTeam(@Param("team") Team team);
+
+    /**
+     * 프로젝트 삭제 전에 해당 프로젝트의 모든 답변 수정 이력을 삭제한다.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        DELETE FROM QaAnswerRevision revision
+        WHERE revision.answer.question.targetTeam.project = :project
+        """)
+    void bulkDeleteByProject(@Param("project") Project project);
 }
