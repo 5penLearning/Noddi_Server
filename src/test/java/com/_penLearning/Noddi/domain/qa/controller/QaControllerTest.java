@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
 import com._penLearning.Noddi.domain.qa.entity.AnswerType;
 import com._penLearning.Noddi.domain.qa.entity.QaStatus;
 import com._penLearning.Noddi.domain.qa.entity.SourceType;
+import com._penLearning.Noddi.domain.qa.service.QaAnswerStreamSubscriptionService;
 import com._penLearning.Noddi.domain.qa.service.QaAnswerUpdateService;
 import com._penLearning.Noddi.domain.qa.service.QaQuestionCommandService;
 import com._penLearning.Noddi.domain.qa.service.QaQuestionQueryService;
@@ -20,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +54,9 @@ class QaControllerTest {
     @Mock
     private QaAnswerUpdateService qaAnswerUpdateService;
 
+    @Mock
+    private QaAnswerStreamSubscriptionService qaAnswerStreamSubscriptionService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -58,7 +64,8 @@ class QaControllerTest {
         QaController controller = new QaController(
                 qaQuestionCommandService,
                 qaQuestionQueryService,
-                qaAnswerUpdateService
+                qaAnswerUpdateService,
+                qaAnswerStreamSubscriptionService
         );
 
         // 실제 JWT 필터를 실행하는 대신 로그인 완료 후 SecurityContext에 들어갈 인증 객체를 준비한다.
@@ -149,6 +156,27 @@ class QaControllerTest {
 
         // Then: 문자열 query parameter가 Long과 int로 변환되어 서비스에 정확히 전달된다.
         verify(qaQuestionQueryService).getTeamFeed(1L, 10L, 81L, 10);
+    }
+
+    @Test
+    void opensAnswerStreamForAuthenticatedUser() throws Exception {
+        // Given: 구독 서비스가 질문 101번의 장시간 SSE 연결을 생성한다.
+        SseEmitter emitter = new SseEmitter();
+        when(qaAnswerStreamSubscriptionService.subscribe(1L, 101L))
+                .thenReturn(emitter);
+
+        // When & Then: SSE 엔드포인트를 호출하면 일반 JSON 응답으로 끝나지 않고
+        // 비동기 요청을 시작해 이후 AI 이벤트를 계속 받을 수 있는 연결을 유지한다.
+        mockMvc.perform(get("/api/v1/qa/questions/{questionId}/answer-stream", 101L)
+                        .accept("text/event-stream"))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted());
+
+        // SecurityContext의 로그인 사용자 ID와 URL의 질문 ID가 구독 서비스에 전달된다.
+        verify(qaAnswerStreamSubscriptionService).subscribe(1L, 101L);
+
+        // 테스트가 끝난 뒤 열려 있는 비동기 요청을 정리한다.
+        emitter.complete();
     }
 
     private QaResponseDto.Feed createAnsweredFeed(LocalDateTime createdAt) {

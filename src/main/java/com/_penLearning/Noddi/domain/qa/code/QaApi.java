@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Tag(name = "Q&A API", description = "팀 간 Q&A(질문/답변) 관리 API")
 public interface QaApi {
@@ -57,5 +58,22 @@ public interface QaApi {
             QaRequestDto.ReviseAnswer request,
             @Parameter(hidden = true) AuthMember authMember
     );
+
+    @Operation(
+            summary = "AI 답변 스트림 구독",
+            description = """
+                특정 질문의 AI 답변 생성 과정을 SSE로 구독합니다.
+                같은 프로젝트의 멤버만 구독할 수 있습니다.
+                
+                이벤트 종류:
+                - connected: SSE 연결 성공
+                - snapshot: 현재까지 생성된 전체 답변
+                - chunk: 새롭게 생성된 답변 조각
+                - completed: 최종 답변 저장 완료
+                - failed: 답변 생성 실패
+                """
+    )
+    SseEmitter subscribeAnswerStream(@Parameter(description = "질문 ID") @PathVariable Long questionId,
+                                     @Parameter(hidden = true) AuthMember authMember);
 
 }

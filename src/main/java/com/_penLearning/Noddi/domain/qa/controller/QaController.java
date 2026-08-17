@@ -4,6 +4,7 @@ import com._penLearning.Noddi.domain.auth.entity.AuthMember;
 import com._penLearning.Noddi.domain.qa.code.QaApi;
 import com._penLearning.Noddi.domain.qa.dto.QaRequestDto;
 import com._penLearning.Noddi.domain.qa.dto.QaResponseDto;
+import com._penLearning.Noddi.domain.qa.service.QaAnswerStreamSubscriptionService;
 import com._penLearning.Noddi.domain.qa.service.QaQuestionCommandService;
 import com._penLearning.Noddi.domain.qa.service.QaAnswerUpdateService;
 import com._penLearning.Noddi.domain.qa.service.QaQuestionQueryService;
@@ -12,20 +13,24 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class QaController implements QaApi {
 
     private final QaQuestionCommandService qaQuestionCommandService;
     private final QaQuestionQueryService qaQuestionQueryService;
     private final QaAnswerUpdateService qaAnswerUpdateService;
+    private final QaAnswerStreamSubscriptionService qaAnswerStreamSubscriptionService;
 
     // 질문 등록
     @Override
-    @PostMapping("/api/v1/qa/questions")
+    @PostMapping("/qa/questions")
     public ApiResponse<QaResponseDto.CreateQuestion> createQuestion(
             @RequestBody @Valid QaRequestDto.CreateQuestion request,
             @AuthenticationPrincipal AuthMember authMember) {
@@ -36,7 +41,7 @@ public class QaController implements QaApi {
 
     // 내가 작성한 질문 목록 조회
     @Override
-    @GetMapping("/api/v1/qa/questions/me")
+    @GetMapping("/qa/questions/me")
     public ApiResponse<Page<QaResponseDto.QuestionInfo>> getMyQuestions(
             @AuthenticationPrincipal AuthMember authMember,
             Pageable pageable) {
@@ -47,7 +52,7 @@ public class QaController implements QaApi {
 
     // 특정 팀의 질문 목록 조회 (경로 다름)
     @Override
-    @GetMapping("/api/v1/teams/{teamId}/qa/questions")
+    @GetMapping("/teams/{teamId}/qa/questions")
     public ApiResponse<Page<QaResponseDto.QuestionInfo>> getTeamQuestions(
             @PathVariable Long teamId,
             @AuthenticationPrincipal AuthMember authMember,
@@ -59,7 +64,7 @@ public class QaController implements QaApi {
 
     // 특정 팀의 질문과 답변 피드 조회
     @Override
-    @GetMapping("/api/v1/teams/{teamId}/qa/feed")
+    @GetMapping("/teams/{teamId}/qa/feed")
     public ApiResponse<QaResponseDto.Feed> getTeamFeed(
             @PathVariable Long teamId,
             @RequestParam(required = false) Long cursor,
@@ -73,7 +78,7 @@ public class QaController implements QaApi {
 
     // 질문 상세 단건 조회
     @Override
-    @GetMapping("/api/v1/qa/questions/{questionId}")
+    @GetMapping("/qa/questions/{questionId}")
     public ApiResponse<QaResponseDto.QuestionDetail> getQuestionDetail(
             @PathVariable Long questionId,
             @AuthenticationPrincipal AuthMember authMember) {
@@ -84,7 +89,7 @@ public class QaController implements QaApi {
 
     // AI 답변 수정
     @Override
-    @PatchMapping("/api/v1/qa/answers/{answerId}")
+    @PatchMapping("/qa/answers/{answerId}")
     public ApiResponse<QaResponseDto.ReviseAnswer> reviseAnswer(
             @PathVariable Long answerId,
             @RequestBody @Valid QaRequestDto.ReviseAnswer request,
@@ -97,4 +102,20 @@ public class QaController implements QaApi {
         return ApiResponse.onSuccess("AI 답변이 성공적으로 수정되었습니다.", response);
     }
 
+    /**
+     * 특정 질문의 AI 답변 생성 과정을 SSE로 구독한다.
+     *
+     * 일반 API처럼 한 번 응답하고 종료하는 것이 아니라,
+     * AI 답변이 완료되거나 실패할 때까지 HTTP 연결을 유지한다.
+     */
+    @Override
+    @GetMapping(value = "/qa/questions/{questionId}/answer-stream",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeAnswerStream(
+            @PathVariable Long questionId,
+            @AuthenticationPrincipal AuthMember authMember
+    )
+    {
+        return qaAnswerStreamSubscriptionService.subscribe(authMember.getUserId(), questionId);
+    }
 }
