@@ -40,6 +40,7 @@ public class SwaggerConfig {
         return openApi -> openApi.setTags(List.of(
                 new Tag().name("Auth API").description("인증 API"),
                 new Tag().name("User API").description("사용자 API"),
+                new Tag().name("홈 AI 답변 현황 API").description("홈 미확인 AI 답변 현황 API"),
                 new Tag().name("Organization API").description("조직 API"),
                 new Tag().name("Announcement API").description("프로젝트 전체 공지 API"),
                 new Tag().name("Project API").description("프로젝트 API"),
@@ -48,7 +49,8 @@ public class SwaggerConfig {
                 new Tag().name("Team Page API").description("팀 공유 페이지 API"),
                 new Tag().name("Meeting API").description("회의 API"),
                 new Tag().name("ActionItem API").description("회의 할 일 API"),
-                new Tag().name("Q&A API").description("질의응답 API")
+                new Tag().name("Q&A API").description("질의응답 API"),
+                new Tag().name("알림 API").description("공통 알림함 API")
         ));
     }
 }
