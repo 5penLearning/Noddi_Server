@@ -18,18 +18,19 @@ public interface HomeAiAnswerRepository
         extends Repository<Notification, Long> {
 
     /**
-     * 홈 상단 탭에 표시할 현재 사용자의 모든 참여 프로젝트를 조회한다.
+     * 홈 상단 탭에 표시할 현재 사용자의 팀 소속 프로젝트를 조회한다.
      *
-     * 알림 유무와 무관하게 조회하므로 미확인 답변이 0개인 프로젝트도 포함된다.
+     * 한 프로젝트의 여러 팀에 속할 수 있으므로 DISTINCT로 중복을 제거한다.
+     * 알림이 없더라도 현재 소속 팀이 하나 이상인 프로젝트는 0개 탭으로 포함된다.
      */
     @Query("""
-            SELECT projectMember.project.projectId AS projectId,
-                   projectMember.project.name AS projectName
-            FROM ProjectMember projectMember
-            WHERE projectMember.user.userId = :userId
-            ORDER BY projectMember.project.projectId ASC
+            SELECT DISTINCT teamMember.team.project.projectId AS projectId,
+                            teamMember.team.project.name AS projectName
+            FROM TeamMember teamMember
+            WHERE teamMember.user.userId = :userId
+            ORDER BY teamMember.team.project.projectId ASC
             """)
-    List<HomeProjectProjection> findProjectsByMemberUserId(
+    List<HomeProjectProjection> findProjectsByTeamMemberUserId(
             @Param("userId") Long userId
     );
 

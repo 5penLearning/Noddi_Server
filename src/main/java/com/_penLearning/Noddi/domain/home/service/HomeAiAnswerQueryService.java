@@ -45,7 +45,7 @@ public class HomeAiAnswerQueryService {
                         projection -> projection.getUnreadCount()
                 ));
 
-        return homeAiAnswerRepository.findProjectsByMemberUserId(userId)
+        return homeAiAnswerRepository.findProjectsByTeamMemberUserId(userId)
                 .stream()
                 .map(project -> HomeAiAnswerResponseDto.ProjectStatus.of(
                         project,

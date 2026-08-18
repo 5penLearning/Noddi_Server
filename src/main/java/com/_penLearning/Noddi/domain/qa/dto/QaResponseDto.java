@@ -9,6 +9,7 @@ import com._penLearning.Noddi.domain.qa.entity.SourceType;
 import com._penLearning.Noddi.domain.qa.entity.QaAnswerRevision;
 import com._penLearning.Noddi.domain.qa.entity.RevisionEditorType;
 import com._penLearning.Noddi.domain.team.entity.Team;
+import com._penLearning.Noddi.domain.user.entity.User;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -223,19 +224,35 @@ public class QaResponseDto {
 
         private Long questionerId;
         private String questionerName;
+        private String questionerDepartment;
+        private String questionerPosition;
+        private String questionerProfileImageUrl;
 
         private String content;
         private LocalDateTime createdAt;
-        //현재 소속 부서 + 직함 엔티티가 없어서 일단 빼고 이름만 반환
 
         public static FeedQuestion from(QaQuestion question){
+            User questioner = question.getQuestioner();
+
             return FeedQuestion.builder()
                     .questionId(question.getQuestionId())
-                    .questionerId(question.getQuestioner().getUserId())
-                    .questionerName(question.getQuestioner().getName())
+                    .questionerId(questioner.getUserId())
+                    .questionerName(questioner.getName())
+                    .questionerDepartment(questioner.getDepartment())
+                    .questionerPosition(questioner.getPosition())
+                    .questionerProfileImageUrl(profileImageUrl(questioner))
                     .content(question.getContent())
                     .createdAt(question.getCreatedAt())
                     .build();
+        }
+
+        private static String profileImageUrl(User user) {
+            if (user.getProfileImageKey() == null) {
+                return null;
+            }
+
+            return "/api/v1/users/" + user.getUserId()
+                    + "/profile-image?v=" + user.getProfileImageKey();
         }
     }
 
