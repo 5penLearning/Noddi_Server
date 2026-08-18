@@ -85,7 +85,7 @@ public class UserController implements UserApi {
         ProfileImageResource image = userProfileImageService.getProfileImage(userId);
         return ResponseEntity.ok()
                 .contentType(image.mediaType())
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable())
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePrivate().immutable())
                 .body(image.resource());
     }
 }
