@@ -6,8 +6,13 @@ import com._penLearning.Noddi.domain.summary.dto.SummaryResponseDto;
 import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+@Tag(
+        name = "Summary API",
+        description = "회의록 기반 요약 API"
+)
 public interface SummaryApi {
 
     @Operation(
