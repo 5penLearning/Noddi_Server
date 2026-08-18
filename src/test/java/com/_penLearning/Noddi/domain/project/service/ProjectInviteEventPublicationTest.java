@@ -6,6 +6,7 @@ import com._penLearning.Noddi.domain.project.entity.ProjectInvite;
 import com._penLearning.Noddi.domain.project.entity.ProjectMember;
 import com._penLearning.Noddi.domain.project.entity.ProjectRole;
 import com._penLearning.Noddi.domain.project.event.ProjectInviteCreatedEvent;
+import com._penLearning.Noddi.domain.project.event.ProjectInviteRespondedEvent;
 import com._penLearning.Noddi.domain.project.repository.ProjectInviteRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectMemberRepository;
 import com._penLearning.Noddi.domain.project.repository.ProjectRepository;
@@ -20,6 +21,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,6 +87,38 @@ class ProjectInviteEventPublicationTest {
                 "홍길동",
                 10L
         ));
+    }
+
+    @Test
+    void publishesProjectInviteRespondedEventAfterRejectingInvite() {
+        // Given: 현재 사용자가 받은 유효한 프로젝트 초대를 거절한다.
+        ProjectMemberService service = service();
+        ReflectionTestUtils.setField(service, "inviteValidDays", 7);
+        ProjectInvite invite = ProjectInvite.builder()
+                .project(project)
+                .inviter(requester)
+                .invitee(targetUser)
+                .build();
+        ReflectionTestUtils.setField(invite, "inviteId", 400L);
+        ReflectionTestUtils.setField(
+                invite,
+                "createdAt",
+                LocalDateTime.now()
+        );
+
+        when(projectInviteRepository.findByIdWithProject(400L))
+                .thenReturn(Optional.of(invite));
+        when(targetUser.getUserId()).thenReturn(10L);
+
+        // When: 프로젝트 초대를 거절한다.
+        service.respondToInvitation(400L, 10L, false);
+
+        // Then: 상태가 REJECTED로 변경되고 알림 정리를 위한 이벤트를 발행한다.
+        assertThat(invite.getStatus())
+                .isEqualTo(com._penLearning.Noddi.domain.project.entity.InviteStatus.REJECTED);
+        verify(eventPublisher).publishEvent(
+                new ProjectInviteRespondedEvent(400L)
+        );
     }
 
     private ProjectMemberService service() {

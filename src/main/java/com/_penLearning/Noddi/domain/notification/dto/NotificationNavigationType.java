@@ -8,5 +8,8 @@ public enum NotificationNavigationType {
     QA_TEAM_FEED,
 
     // 마이페이지의 받은 초대장 화면
-    MY_INVITATIONS
+    MY_INVITATIONS,
+
+    //홈 화면의 프로젝트별 To-do list
+    HOME_ACTION_ITEMS
 }

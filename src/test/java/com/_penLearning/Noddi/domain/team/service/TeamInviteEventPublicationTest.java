@@ -9,6 +9,7 @@ import com._penLearning.Noddi.domain.team.entity.TeamInvite;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
 import com._penLearning.Noddi.domain.team.entity.TeamRole;
 import com._penLearning.Noddi.domain.team.event.TeamInviteCreatedEvent;
+import com._penLearning.Noddi.domain.team.event.TeamInviteRespondedEvent;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
@@ -23,6 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -99,6 +101,41 @@ class TeamInviteEventPublicationTest {
                 "홍길동",
                 10L
         ));
+    }
+
+    @Test
+    void publishesTeamInviteRespondedEventAfterAcceptingInvite() {
+        // Given: 현재 사용자가 받은 유효한 팀 초대를 수락한다.
+        TeamCommandService service = service();
+        TeamInvite invite = TeamInvite.builder()
+                .team(team)
+                .inviter(requester)
+                .invitee(targetUser)
+                .build();
+        ReflectionTestUtils.setField(invite, "inviteId", 300L);
+        ReflectionTestUtils.setField(
+                invite,
+                "createdAt",
+                LocalDateTime.now()
+        );
+
+        when(teamInviteRepository.findByIdWithTeam(300L))
+                .thenReturn(Optional.of(invite));
+        when(targetUser.getUserId()).thenReturn(10L);
+        when(team.getProject()).thenReturn(project);
+        when(projectMemberRepository.findByProjectAndUser(project, targetUser))
+                .thenReturn(Optional.of(targetProjectMembership));
+        when(teamMemberRepository.existsByTeamAndUser(team, targetUser))
+                .thenReturn(false);
+
+        // When: 초대 수락과 팀 멤버 저장이 정상적으로 완료된다.
+        service.respondToInvite(300L, 10L, true);
+
+        // Then: 커밋 후 초대 알림을 숨길 수 있도록 응답 이벤트를 발행한다.
+        verify(teamMemberRepository).save(any(TeamMember.class));
+        verify(eventPublisher).publishEvent(
+                new TeamInviteRespondedEvent(300L)
+        );
     }
 
     private TeamCommandService service() {

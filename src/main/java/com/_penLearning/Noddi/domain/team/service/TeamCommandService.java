@@ -9,6 +9,7 @@ import com._penLearning.Noddi.domain.team.code.TeamErrorCode;
 import com._penLearning.Noddi.domain.team.dto.TeamRequestDto;
 import com._penLearning.Noddi.domain.team.entity.*;
 import com._penLearning.Noddi.domain.team.event.TeamInviteCreatedEvent;
+import com._penLearning.Noddi.domain.team.event.TeamInviteRespondedEvent;
 import com._penLearning.Noddi.domain.team.repository.TeamInviteRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamRepository;
@@ -144,6 +145,8 @@ public class TeamCommandService {
         } else {
             invite.reject();
         }
+
+        eventPublisher.publishEvent(new TeamInviteRespondedEvent(inviteId));
     }
 
     // 팀 정보 수정

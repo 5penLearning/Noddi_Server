@@ -125,20 +125,44 @@ public class NotificationCommandService {
             return;
         }
 
+        resolveReferenceNotifications(
+                NotificationReferenceType.QA_QUESTION,
+                questionId,
+                types);
+    }
+
+    /**
+     * 원본 리소스의 상태 변경으로 더 이상 유효하지 않은 알림을 숨긴다.
+     *
+     * 컨트롤러에서 직접 호출하는 기능이 아니라
+     * 각 도메인의 이벤트 핸들러에서 사용한다.
+     *
+     * 예:
+     * - TEAM_INVITE + inviteId + TEAM_INVITE
+     * - PROJECT_INVITE + inviteId + PROJECT_INVITE
+     * - ACTION_ITEM + actionItemId + ACTION_ITEM_ASSIGNED
+     */
+    @Transactional
+    public void resolveReferenceNotifications(
+            NotificationReferenceType referenceType,
+            Long referenceId,
+            Set<NotificationType> types
+    ) {
+        if (types == null || types.isEmpty()) {
+            return;
+        }
+
         List<Notification> notifications =
                 notificationRepository
                         .findVisibleNotificationsByReferenceAndTypes(
-                                NotificationReferenceType.QA_QUESTION,
-                                questionId,
+                                referenceType,
+                                referenceId,
                                 types
                         );
 
         /*
-         * 단순 읽음이 아니라 숨김 처리한다.
-         *
-         * 답변이 이미 등록됐는데도
-         * “직접 답변해 주세요” 같은 만료된 행동 알림이
-         * ALL 목록에 남으면 사용자에게 잘못된 상태를 보여주기 때문이다.
+         * 처리할 행동이 끝난 알림이므로 읽음만 적용하지 않고
+         * 알림함에서 더 이상 보이지 않도록 숨긴다.
          */
         notifications.forEach(Notification::hide);
     }

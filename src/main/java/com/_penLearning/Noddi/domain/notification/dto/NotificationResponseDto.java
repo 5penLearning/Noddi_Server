@@ -89,9 +89,14 @@ public class NotificationResponseDto {
         /*
          * QA_QUESTION이면 questionId,
          * TEAM_INVITE이면 teamInviteId,
-         * PROJECT_INVITE이면 projectInviteId다.
+         * PROJECT_INVITE이면 projectInviteId,
+         * ACTION_ITEM이면 actionItemId다.
          *
          * QA_TEAM_FEED는 여러 질문을 묶으므로 null이다.
+         *
+         * HOME_ACTION_ITEMS는 현재 projectId만 사용해 홈의 프로젝트를
+         * 선택하며, referenceId는 향후 특정 Action Item 포커스 기능을
+         * 위해 전달하지만 현재 프론트에서는 사용하지 않는다.
          */
         private Long referenceId;
     }

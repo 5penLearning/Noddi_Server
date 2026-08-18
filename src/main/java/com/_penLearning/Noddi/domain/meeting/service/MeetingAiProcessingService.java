@@ -1,16 +1,19 @@
 package com._penLearning.Noddi.domain.meeting.service;
 
+import com._penLearning.Noddi.domain.actionItem.event.ActionItemAssigneeChangedEvent;
 import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.meeting.code.MeetingErrorCode;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.meeting.event.MeetingAiProcessingRequestedEvent;
 import com._penLearning.Noddi.domain.meeting.event.MeetingTranscriptReadyEvent;
 import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
+import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
 import com._penLearning.Noddi.domain.actionItem.repository.ActionItemRepository;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
+import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.entity.User;
@@ -232,7 +235,35 @@ public class MeetingAiProcessingService {
             List<ActionItem> actionItems = aiActionItems.stream()
                     .map(aiActionItem -> toActionItem(meeting, aiActionItem, teamUsersById))
                     .toList();
-            actionItemRepository.saveAll(actionItems);
+
+            List<ActionItem> savedActionItems = actionItemRepository.saveAll(actionItems);
+
+            Team team = meeting.getTeam();
+            Project project = team.getProject();
+
+            for (ActionItem actionItem : savedActionItems) {
+                User assignee = actionItem.getAssignee();
+
+                if (assignee == null) {
+                    continue;
+                }
+
+                eventPublisher.publishEvent(
+                        new ActionItemAssigneeChangedEvent(
+                                actionItem.getActionItemId(),
+
+                                project.getProjectId(),
+                                project.getName(),
+
+                                team.getTeamId(),
+                                team.getName(),
+
+                                assignee.getUserId(),
+
+                                null
+                        )
+                );
+            }
             meeting.completeAiProcessing();
 
             // 현재 트랜잭션이 커밋된 뒤 RAG 색인을 시작한다.
