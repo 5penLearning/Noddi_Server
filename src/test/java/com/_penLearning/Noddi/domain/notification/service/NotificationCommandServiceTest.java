@@ -159,6 +159,34 @@ class NotificationCommandServiceTest {
         assertThat(failed.isRead()).isTrue();
     }
 
+    @Test
+    void hidesResolvedActionItemNotificationsAcrossRecipients() {
+        // Given: Action Item이 재배정 또는 삭제돼 기존 담당자의 배정 알림이 만료됐다.
+        Notification assigned = notification(
+                NotificationType.ACTION_ITEM_ASSIGNED
+        );
+        Set<NotificationType> resolvedTypes =
+                Set.of(NotificationType.ACTION_ITEM_ASSIGNED);
+
+        when(notificationRepository
+                .findVisibleNotificationsByReferenceAndTypes(
+                        NotificationReferenceType.ACTION_ITEM,
+                        500L,
+                        resolvedTypes
+                )).thenReturn(List.of(assigned));
+
+        // When: Action Item 이벤트 핸들러가 참조 대상 알림을 정리한다.
+        service().resolveReferenceNotifications(
+                NotificationReferenceType.ACTION_ITEM,
+                500L,
+                resolvedTypes
+        );
+
+        // Then: 기존 알림은 안 읽은 개수에도 남지 않도록 읽음과 숨김을 함께 적용한다.
+        assertThat(assigned.isHidden()).isTrue();
+        assertThat(assigned.isRead()).isTrue();
+    }
+
     private NotificationCommandService service() {
         return new NotificationCommandService(notificationRepository);
     }

@@ -74,6 +74,18 @@ class NotificationMessageFactoryTest {
     }
 
     @Test
+    void createsActionItemAssignedMessage() {
+        // 수동 배정과 AI 자동 배정이 같은 문구를 사용하도록 생성자 이름 없이 구성한다.
+        String message = factory.createActionItemAssignedMessage(
+                "노디프로젝트",
+                "마케팅팀"
+        );
+
+        assertThat(message)
+                .isEqualTo("[노디프로젝트/마케팅팀] 새로운 할 일이 할당됐어요.");
+    }
+
+    @Test
     void rejectsNonQaTypeForQaMessage() {
         // 초대 타입을 Q&A 메시지 생성기로 전달하는 개발 오류는 즉시 드러내야 한다.
         assertThatThrownBy(() -> factory.createQaMessage(

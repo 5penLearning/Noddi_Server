@@ -3,13 +3,18 @@ package com._penLearning.Noddi.domain.notification.event;
 import com._penLearning.Noddi.domain.notification.entity.NotificationReferenceType;
 import com._penLearning.Noddi.domain.notification.entity.NotificationType;
 import com._penLearning.Noddi.domain.notification.message.NotificationMessageFactory;
+import com._penLearning.Noddi.domain.notification.service.NotificationCommandService;
 import com._penLearning.Noddi.domain.notification.service.NotificationCreateService;
 import com._penLearning.Noddi.domain.project.event.ProjectInviteCreatedEvent;
+import com._penLearning.Noddi.domain.project.event.ProjectInviteRespondedEvent;
 import com._penLearning.Noddi.domain.team.event.TeamInviteCreatedEvent;
+import com._penLearning.Noddi.domain.team.event.TeamInviteRespondedEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Set;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +24,7 @@ class InviteNotificationEventHandlerTest {
 
     @Mock private NotificationCreateService notificationCreateService;
     @Mock private NotificationMessageFactory messageFactory;
+    @Mock private NotificationCommandService notificationCommandService;
 
     @Test
     void createsTeamInviteNotificationWithTeamNavigationData() {
@@ -85,10 +91,49 @@ class InviteNotificationEventHandlerTest {
         );
     }
 
+    @Test
+    void hidesTeamInviteNotificationAfterResponse() {
+        // Given: 초대받은 사용자가 팀 초대를 수락하거나 거절해 응답 처리가 커밋됐다.
+        InviteNotificationEventHandler handler = handler();
+        TeamInviteRespondedEvent event =
+                new TeamInviteRespondedEvent(300L);
+
+        // When: 알림 핸들러가 팀 초대 응답 이벤트를 처리한다.
+        handler.handleTeamInviteResponded(event);
+
+        // Then: 이미 처리돼 더 이상 행동할 필요가 없는 팀 초대 알림을 숨긴다.
+        verify(notificationCommandService)
+                .resolveReferenceNotifications(
+                        NotificationReferenceType.TEAM_INVITE,
+                        300L,
+                        Set.of(NotificationType.TEAM_INVITE)
+                );
+    }
+
+    @Test
+    void hidesProjectInviteNotificationAfterResponse() {
+        // Given: 프로젝트 초대 응답 처리가 정상적으로 커밋됐다.
+        InviteNotificationEventHandler handler = handler();
+        ProjectInviteRespondedEvent event =
+                new ProjectInviteRespondedEvent(400L);
+
+        // When: 알림 핸들러가 프로젝트 초대 응답 이벤트를 처리한다.
+        handler.handleProjectInviteResponded(event);
+
+        // Then: 해당 프로젝트 초대를 참조하는 알림만 숨기도록 위임한다.
+        verify(notificationCommandService)
+                .resolveReferenceNotifications(
+                        NotificationReferenceType.PROJECT_INVITE,
+                        400L,
+                        Set.of(NotificationType.PROJECT_INVITE)
+                );
+    }
+
     private InviteNotificationEventHandler handler() {
         return new InviteNotificationEventHandler(
                 notificationCreateService,
-                messageFactory
+                messageFactory,
+                notificationCommandService
         );
     }
 }

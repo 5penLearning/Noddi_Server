@@ -185,6 +185,38 @@ class NotificationQueryServiceTest {
     }
 
     @Test
+    void mapsActionItemNotificationToHomeProjectTodoList() {
+        // Given: 사용자에게 프로젝트의 Action Item이 새로 배정됐다.
+        Notification actionItem = notification(
+                1L,
+                NotificationType.ACTION_ITEM_ASSIGNED,
+                NotificationReferenceType.ACTION_ITEM,
+                501L,
+                false,
+                LocalDateTime.of(2026, 8, 18, 11, 0)
+        );
+
+        stubVisibleNotifications(List.of(actionItem));
+        when(notificationRepository.countUnreadNotifications(10L))
+                .thenReturn(1L);
+
+        // When: 사용자가 알림함을 조회한다.
+        NotificationResponseDto.NotificationList response = service()
+                .getNotifications(10L, NotificationFilter.ALL, 0, 20);
+
+        NotificationResponseDto.Navigation navigation =
+                response.getItems().getFirst().getNavigation();
+
+        // Then: 프론트는 HOME_ACTION_ITEMS와 projectId로 홈의 프로젝트 To-do를 연다.
+        // teamId와 actionItemId도 응답되지만 현재 라우팅에서는 사용하지 않는다.
+        assertThat(navigation.getType())
+                .isEqualTo(NotificationNavigationType.HOME_ACTION_ITEMS);
+        assertThat(navigation.getProjectId()).isEqualTo(1L);
+        assertThat(navigation.getTeamId()).isEqualTo(2L);
+        assertThat(navigation.getReferenceId()).isEqualTo(501L);
+    }
+
+    @Test
     void paginatesAfterGroupingAndOrdersByLatestOccurrence() {
         // Given: AI 검토 알림 2개는 한 항목으로 묶이고, 개별 알림 2개가 함께 존재한다.
         Notification reviewOld = notification(
