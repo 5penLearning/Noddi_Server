@@ -28,9 +28,18 @@ public interface ActionItemApi {
 
     @Operation(
             summary = "내 ActionItem 목록 조회",
-            description = "현재 로그인한 사용자가 담당자로 지정된 ActionItem을 조회합니다."
+            description = "현재 로그인한 사용자가 담당자로 지정된 미완료 ActionItem(PENDING, IN_PROGRESS)을 조회합니다."
     )
     ApiResponse<List<ActionItemResponseDto.Info>> getMyActionItems(
+            @Parameter(hidden = true) AuthMember authMember
+    );
+
+    @Operation(
+            summary = "팀별 개인 To-do 조회",
+            description = "현재 사용자가 소속된 모든 팀과 담당 미완료 ActionItem(PENDING, IN_PROGRESS)을 팀별로 묶어 조회합니다. 할 일이 없는 팀도 포함합니다."
+    )
+    ApiResponse<List<ActionItemResponseDto.TeamTodoGroup>>
+    getMyActionItemsByTeam(
             @Parameter(hidden = true) AuthMember authMember
     );
 

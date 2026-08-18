@@ -23,6 +23,19 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     @Query("SELECT tm FROM TeamMember tm JOIN FETCH tm.team WHERE tm.user = :user")
     List<TeamMember> findAllByUserWithTeam(@Param("user") User user);
 
+    // 팀별 개인 To-do 조립을 위해 팀과 프로젝트를 고정된 순서로 일괄 조회한다.
+    @Query("""
+            SELECT tm
+            FROM TeamMember tm
+            JOIN FETCH tm.team team
+            JOIN FETCH team.project project
+            WHERE tm.user = :user
+            ORDER BY project.projectId ASC, team.teamId ASC
+            """)
+    List<TeamMember> findAllByUserWithTeamAndProject(
+            @Param("user") User user
+    );
+
     // 특정 유저의 팀 멤버 정보 단건 조회
     Optional<TeamMember> findByTeamAndUser(Team team, User user);
 

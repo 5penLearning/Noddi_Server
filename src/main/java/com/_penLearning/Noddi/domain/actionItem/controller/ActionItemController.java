@@ -58,6 +58,23 @@ public class ActionItemController implements ActionItemApi {
     }
 
     @Override
+    @GetMapping("/action-items/me/by-team")
+    public ApiResponse<List<ActionItemResponseDto.TeamTodoGroup>>
+    getMyActionItemsByTeam(
+            @AuthenticationPrincipal AuthMember authMember
+    ) {
+        List<ActionItemResponseDto.TeamTodoGroup> response =
+                actionItemQueryService.getMyActionItemsByTeam(
+                        authMember.getUserId()
+                );
+
+        return ApiResponse.onSuccess(
+                "팀별 개인 To-do 조회가 완료되었습니다.",
+                response
+        );
+    }
+
+    @Override
     @PatchMapping("/action-items/{actionItemId}")
     public ApiResponse<Void> updateActionItem(
             @PathVariable Long actionItemId,
