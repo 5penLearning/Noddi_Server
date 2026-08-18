@@ -30,7 +30,7 @@ public class UserProfileImageService {
         StoredProfileImage storedImage = profileImageStorage.store(image);
 
         try {
-            User user = getUserOrThrow(userId);
+            User user = getUserForProfileImageUpdateOrThrow(userId);
             String previousKey = user.updateProfileImage(storedImage.key());
             cleanupAfterTransaction(storedImage.key(), previousKey);
             return UserResponseDto.ProfileImageInfo.from(user);
@@ -43,7 +43,7 @@ public class UserProfileImageService {
 
     @Transactional
     public void deleteProfileImage(Long userId) {
-        User user = getUserOrThrow(userId);
+        User user = getUserForProfileImageUpdateOrThrow(userId);
         String previousKey = user.removeProfileImage();
         if (previousKey == null) {
             return;
@@ -108,5 +108,12 @@ public class UserProfileImageService {
             // DB 커밋은 완료됐으므로 파일 정리 실패를 사용자 요청 실패로 되돌리지 않는다.
             log.warn("Profile image cleanup failed. key={}", key, exception);
         }
+    }
+
+    private User getUserForProfileImageUpdateOrThrow(Long userId) {
+        return userRepository.findByIdForProfileImageUpdate(userId)
+                .orElseThrow(() ->
+                        new GeneralException(UserErrorCode.USER_NOT_FOUND)
+                );
     }
 }

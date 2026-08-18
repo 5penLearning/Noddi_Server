@@ -33,7 +33,7 @@ class UserProfileImageServiceTest {
         UserProfileImageService service = new UserProfileImageService(userRepository, profileImageStorage);
         MockMultipartFile image = new MockMultipartFile("image", new byte[]{1});
         when(profileImageStorage.store(image)).thenReturn(new StoredProfileImage(NEW_KEY));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForProfileImageUpdate(1L)).thenReturn(Optional.of(user));
         when(user.updateProfileImage(NEW_KEY)).thenReturn(OLD_KEY);
         when(user.getUserId()).thenReturn(1L);
         when(user.getProfileImageKey()).thenReturn(NEW_KEY);
@@ -50,7 +50,8 @@ class UserProfileImageServiceTest {
         UserProfileImageService service = new UserProfileImageService(userRepository, profileImageStorage);
         MockMultipartFile image = new MockMultipartFile("image", new byte[]{1});
         when(profileImageStorage.store(image)).thenReturn(new StoredProfileImage(NEW_KEY));
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        // 이미지 변경은 동시 요청을 직렬화하기 위해 잠금 조회를 사용한다.
+        when(userRepository.findByIdForProfileImageUpdate(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.updateProfileImage(999L, image))
                 .isInstanceOf(GeneralException.class);
@@ -61,7 +62,8 @@ class UserProfileImageServiceTest {
     @Test
     void removesProfileImageKeyAndStoredFile() {
         UserProfileImageService service = new UserProfileImageService(userRepository, profileImageStorage);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        // 이미지 삭제도 변경 요청과 동일한 사용자 행 잠금을 사용한다.
+        when(userRepository.findByIdForProfileImageUpdate(1L)).thenReturn(Optional.of(user));
         when(user.removeProfileImage()).thenReturn(OLD_KEY);
 
         service.deleteProfileImage(1L);

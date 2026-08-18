@@ -1,7 +1,9 @@
 package com._penLearning.Noddi.domain.user.repository;
 
 import com._penLearning.Noddi.domain.user.entity.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Pageable;
@@ -45,5 +47,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<String> findPopularPositions(
             @Param("organizationId") Long organizationId,
             Pageable pageable
+    );
+
+    /*
+     * 동일 사용자의 프로필 이미지 변경과 삭제를 직렬화한다.
+     *
+     * 두 요청이 동시에 같은 이전 이미지 키를 읽으면
+     * 한쪽 새 이미지가 S3에 남을 수 있으므로 쓰기 락을 사용한다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT user
+            FROM User user
+            WHERE user.userId = :userId
+            """)
+    Optional<User> findByIdForProfileImageUpdate(
+            @Param("userId") Long userId
     );
 }
