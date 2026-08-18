@@ -31,7 +31,8 @@ public class SummaryResponseDto {
          */
         public static Detail completed(
                 MeetingSummary meetingSummary,
-                List<ActionItem> actionItems
+                List<ActionItem> actionItems,
+                String formattedTranscript
         ) {
             Meeting meeting = meetingSummary.getMeeting();
 
@@ -42,7 +43,7 @@ public class SummaryResponseDto {
                     .summary(meetingSummary.getSummaryText())
                     .decisions(meetingSummary.getDecisions())
                     .issues(meetingSummary.getIssues())
-                    .rawTranscript(meetingSummary.getRawTranscript())
+                    .rawTranscript(formattedTranscript)
                     .actionItems(
                             actionItems.stream()
                                     .map(ActionItemResponseDto.Info::from)

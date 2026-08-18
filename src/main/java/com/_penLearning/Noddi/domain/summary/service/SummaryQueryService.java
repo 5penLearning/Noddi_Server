@@ -9,6 +9,7 @@ import com._penLearning.Noddi.domain.meeting.repository.MeetingRepository;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.domain.summary.dto.SummaryResponseDto;
 import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
+import com._penLearning.Noddi.domain.summary.formatter.TranscriptFormatter;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
 import com._penLearning.Noddi.domain.team.repository.TeamMemberRepository;
 import com._penLearning.Noddi.domain.user.entity.User;
@@ -30,6 +31,7 @@ public class SummaryQueryService {
     private final ActionItemRepository actionItemRepository;
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TranscriptFormatter transcriptFormatter;
 
     public SummaryResponseDto.Detail getSummary(Long meetingId, Long currentUserId) {
         Meeting meeting = getMeetingOrThrow(meetingId);
@@ -46,7 +48,15 @@ public class SummaryQueryService {
                 .orElseThrow(() -> new GeneralException(SummaryErrorCode.SUMMARY_NOT_FOUND));
         List<ActionItem> actionItems = actionItemRepository.findAllByMeetingIdWithDetails(meetingId);
 
-        return SummaryResponseDto.Detail.completed(meetingSummary, actionItems);
+        String formattedTranscript = transcriptFormatter.format(
+                meetingSummary.getRawTranscript()
+        );
+
+        return SummaryResponseDto.Detail.completed(
+                meetingSummary,
+                actionItems,
+                formattedTranscript
+        );
     }
 
     private Meeting getMeetingOrThrow(Long meetingId) {
