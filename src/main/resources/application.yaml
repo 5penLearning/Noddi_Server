@@ -107,5 +107,12 @@ qa:
     similarity-threshold: ${QA_RAG_SIMILARITY_THRESHOLD:0.2} # 현재 검증 데이터 기준 하한선이며 평가 결과에 따라 환경변수로 조정
 
 profile-image:
-  storage-path: ${PROFILE_IMAGE_STORAGE_PATH:./uploads/profile-images}
+  # 로컬에서는 local, EC2 운영 환경에서는 s3로 지정한다.
+  storage-type: ${PROFILE_IMAGE_STORAGE_TYPE:local}
   max-file-size-bytes: ${PROFILE_IMAGE_MAX_FILE_SIZE_BYTES:5242880}
+  local:
+    storage-path: ${PROFILE_IMAGE_STORAGE_PATH:./uploads/profile-images}
+  s3:
+    bucket: ${PROFILE_IMAGE_S3_BUCKET:}
+    region: ${AWS_REGION:ap-northeast-2}
+    prefix: ${PROFILE_IMAGE_S3_PREFIX:profile-images}

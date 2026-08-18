@@ -18,6 +18,13 @@ repositories {
 }
 
 dependencies {
+
+	implementation platform('org.springframework.ai:spring-ai-bom:2.0.0')
+	// AWS SDK 모듈들의 버전을 동일하게 관리한다.
+	implementation platform('software.amazon.awssdk:bom:2.47.6')
+	// S3 저장·조회·삭제에 필요한 AWS SDK v2 모듈
+	implementation 'software.amazon.awssdk:s3'
+
 	implementation platform('org.springframework.ai:spring-ai-bom:2.0.0')
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	implementation 'org.springframework.ai:spring-ai-starter-vector-store-pinecone'

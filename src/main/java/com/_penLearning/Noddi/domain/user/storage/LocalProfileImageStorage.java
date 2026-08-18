@@ -4,6 +4,7 @@ import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 import com._penLearning.Noddi.global.exception.GeneralException;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,12 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Component
+@ConditionalOnProperty(
+        prefix = "profile-image",
+        name = "storage-type",
+        havingValue = "local",
+        matchIfMissing = true
+)
 public class LocalProfileImageStorage implements ProfileImageStorage {
 
     private static final Pattern SAFE_KEY_PATTERN = Pattern.compile(
@@ -27,10 +34,16 @@ public class LocalProfileImageStorage implements ProfileImageStorage {
     private final long maxFileSizeBytes;
 
     public LocalProfileImageStorage(
-            @Value("${profile-image.storage-path:./uploads/profile-images}") String storagePath,
-            @Value("${profile-image.max-file-size-bytes:5242880}") long maxFileSizeBytes
+            @Value("${profile-image.local.storage-path:./uploads/profile-images}")
+            String storagePath,
+
+            @Value("${profile-image.max-file-size-bytes:5242880}")
+            long maxFileSizeBytes
     ) {
-        this.storageRoot = Path.of(storagePath).toAbsolutePath().normalize();
+        this.storageRoot = Path.of(storagePath)
+                .toAbsolutePath()
+                .normalize();
+
         this.maxFileSizeBytes = maxFileSizeBytes;
     }
 
