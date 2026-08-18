@@ -11,6 +11,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -52,6 +53,8 @@ public class SecurityConfig {
                                 .requestMatchers("/api/v1/auth/**").permitAll()
                                 // 조직 조회 관련 API 전체 허용
                                 .requestMatchers("/api/v1/organizations/**").permitAll()
+                                // img src에서 바로 로드할 수 있도록 프로필 이미지 조회만 공개
+                                .requestMatchers(HttpMethod.GET, "/api/v1/users/*/profile-image").permitAll()
                                 // Daily.co 웹훅 수신 주소 허용 (JWT 무인증 외부 알림)
                                 .requestMatchers("/webhooks/**").permitAll()
                                 // 그 외 모든 요청은 인증 필요 (테스트 시 필요시 permitAll로 변경 가능)

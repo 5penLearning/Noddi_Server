@@ -20,6 +20,14 @@ public class AuthRequestDto {
         @NotBlank(message = "이름은 필수 입력 값입니다.")
         private String name;
 
+        @NotBlank(message = "부서는 필수 입력 값입니다.")
+        @Size(max = 20, message = "부서는 최대 20자까지 입력 가능합니다.")
+        private String department;
+
+        @NotBlank(message = "직함은 필수 입력 값입니다.")
+        @Size(max = 20, message = "직함은 최대 20자까지 입력 가능합니다.")
+        private String position;
+
         @NotBlank(message = "이메일은 필수 입력 값입니다.")
         @Email(message = "올바른 이메일 형식이 아닙니다.")
         @Size(max =254, message = "이메일은 최대 254자까지 입력 가능합니다.")

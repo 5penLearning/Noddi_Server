@@ -9,8 +9,10 @@ import com._penLearning.Noddi.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,6 +31,17 @@ public class AuthController implements AuthApi {
         AuthResponseDto.AuthSignupResponseDto response = authService.signup(request);
 
         return ApiResponse.onSuccess("회원가입이 완료되었습니다.", response);
+    }
+
+    @Override
+    @GetMapping("/profile-options")
+    public ApiResponse<AuthResponseDto.SignupProfileOptions> getSignupProfileOptions(
+            @RequestParam Long organizationId
+    ) {
+        return ApiResponse.onSuccess(
+                "부서 및 직함 추천 목록 조회에 성공했습니다.",
+                authService.getSignupProfileOptions(organizationId)
+        );
     }
 
     @Override

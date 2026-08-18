@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import com._penLearning.Noddi.domain.user.code.UserErrorCode;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,5 +51,11 @@ public class GlobalExceptionHandler {
         BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
         return ResponseEntity.status(code.getHttpStatus())
                 .body(ApiResponse.onFailure(code, errors));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceededException() {
+        return ResponseEntity.status(UserErrorCode.PROFILE_IMAGE_TOO_LARGE.getHttpStatus())
+                .body(ApiResponse.onFailure(UserErrorCode.PROFILE_IMAGE_TOO_LARGE, null));
     }
 }
