@@ -5,6 +5,7 @@ import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import com._penLearning.Noddi.domain.meeting.code.AiStatus;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
+import com._penLearning.Noddi.domain.summary.model.MeetingTranscriptSegment;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -23,6 +24,7 @@ public class SummaryResponseDto {
         private List<String> decisions;
         private List<String> issues;
         private String rawTranscript;
+        private List<TranscriptSegmentDto> transcriptSegments;
 
         private List<ActionItemResponseDto.Info> actionItems;
 
@@ -36,6 +38,17 @@ public class SummaryResponseDto {
         ) {
             Meeting meeting = meetingSummary.getMeeting();
 
+            // 기존 데이터에는 JSON 값이 null일 수 있으므로 빈 목록으로 처리한다.
+            List<MeetingTranscriptSegment> storedSegments =
+                    meetingSummary.getTranscriptSegments();
+
+            List<TranscriptSegmentDto> transcriptSegmentDtos =
+                    storedSegments == null
+                            ? List.of()
+                            : storedSegments.stream()
+                            .map(TranscriptSegmentDto::from)
+                            .toList();
+
             return Detail.builder()
                     .meetingId(meeting.getMeetingId())
                     .summaryId(meetingSummary.getSummaryId())
@@ -44,6 +57,7 @@ public class SummaryResponseDto {
                     .decisions(meetingSummary.getDecisions())
                     .issues(meetingSummary.getIssues())
                     .rawTranscript(formattedTranscript)
+                    .transcriptSegments(transcriptSegmentDtos)
                     .actionItems(
                             actionItems.stream()
                                     .map(ActionItemResponseDto.Info::from)
@@ -65,8 +79,29 @@ public class SummaryResponseDto {
                     .decisions(List.of())
                     .issues(List.of())
                     .rawTranscript(null)
+                    .transcriptSegments(List.of())
                     .actionItems(List.of())
                     .build();
+        }
+    }
+
+    public record TranscriptSegmentDto(
+            int sequence,
+            String speakerLabel,
+            long startTimeMs,
+            long endTimeMs,
+            String text
+    ) {
+        public static TranscriptSegmentDto from(
+                MeetingTranscriptSegment segment
+        ) {
+            return new TranscriptSegmentDto(
+                    segment.sequence(),
+                    segment.speakerLabel(),
+                    segment.startTimeMs(),
+                    segment.endTimeMs(),
+                    segment.text()
+            );
         }
     }
 }

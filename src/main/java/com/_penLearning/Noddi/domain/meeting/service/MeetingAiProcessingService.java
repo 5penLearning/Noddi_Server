@@ -12,6 +12,7 @@ import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
 import com._penLearning.Noddi.domain.actionItem.repository.ActionItemRepository;
+import com._penLearning.Noddi.domain.summary.model.MeetingTranscriptSegment;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
 import com._penLearning.Noddi.domain.team.entity.Team;
 import com._penLearning.Noddi.domain.team.entity.TeamMember;
@@ -37,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -78,7 +80,13 @@ public class MeetingAiProcessingService {
                     meetingId
             );
 
-            String rawTranscript = openAiClient.transcribeAudio(recordingAccessLink);
+            OpenAiResponseDto.Transcription transcription =
+                    openAiClient.transcribeAudio(recordingAccessLink);
+            String rawTranscript = transcription.text();
+
+            List<MeetingTranscriptSegment> transcriptSegments =
+                    convertSegments(transcription.segments());
+
             log.info(
                     "[MeetingAiProcessingService] 회의 음성 전사 완료: meetingId={}, transcriptLength={}",
                     meetingId,
@@ -96,7 +104,7 @@ public class MeetingAiProcessingService {
                     meetingId,
                     actionItemCount
             );
-            saveResultAtomically(meetingId, rawTranscript, aiResult);
+            saveResultAtomically(meetingId, rawTranscript, transcriptSegments, aiResult);
             log.info(
                     "[MeetingAiProcessingService] AI 회의록 DB 저장 완료: meetingId={}",
                     meetingId
@@ -198,7 +206,7 @@ public class MeetingAiProcessingService {
                 .build();
     }
     //MeetingSummary와 ActionItem을 하나의 트랜잭션에서 저장
-    private void saveResultAtomically(Long meetingId, String rawTranscript, OpenAiResponseDto.MeetingSummary aiResult) {
+    private void    saveResultAtomically(Long meetingId, String rawTranscript, List<MeetingTranscriptSegment> transcriptSegments, OpenAiResponseDto.MeetingSummary aiResult) {
         transactionTemplate.executeWithoutResult(status -> {
             Meeting meeting = meetingRepository.findByIdWithPessimisticLock(meetingId)
                     .orElseThrow(() -> new GeneralException(MeetingErrorCode.MEETING_NOT_FOUND));
@@ -219,6 +227,7 @@ public class MeetingAiProcessingService {
                     .decisions(aiResult.decisions())
                     .issues(aiResult.issues())
                     .rawTranscript(rawTranscript)
+                    .transcriptSegments(transcriptSegments)
                     .build();
             meetingSummaryRepository.save(meetingSummary);
 
@@ -272,5 +281,37 @@ public class MeetingAiProcessingService {
     }
 
     private record ProcessingContext(String recordingId, List<OpenAiRequestDto.TeamMember> teamMembers) {
+    }
+
+    private List<MeetingTranscriptSegment> convertSegments(
+            List<OpenAiResponseDto.TranscriptionSegment> segments
+    ) {
+        // OpenAI가 세그먼트를 반환하지 않아도 회의록 생성 전체를 실패시키지 않는다.
+        if (segments == null || segments.isEmpty()) {
+            return List.of();
+        }
+
+        return IntStream.range(0, segments.size())
+                .mapToObj(index -> {
+                    OpenAiResponseDto.TranscriptionSegment segment =
+                            segments.get(index);
+
+                    return new MeetingTranscriptSegment(
+                            index + 1,
+                            segment.speaker(),
+                            toMilliseconds(segment.start()),
+                            toMilliseconds(segment.end()),
+                            segment.text()
+                    );
+                })
+                .toList();
+    }
+
+    private long toMilliseconds(Double seconds) {
+        if (seconds == null || seconds < 0) {
+            return 0L;
+        }
+
+        return Math.round(seconds * 1000);
     }
 }

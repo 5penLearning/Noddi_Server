@@ -48,14 +48,21 @@ public class SummaryQueryService {
                 .orElseThrow(() -> new GeneralException(SummaryErrorCode.SUMMARY_NOT_FOUND));
         List<ActionItem> actionItems = actionItemRepository.findAllByMeetingIdWithDetails(meetingId);
 
-        String formattedTranscript = transcriptFormatter.format(
-                meetingSummary.getRawTranscript()
-        );
+        boolean hasSegments =
+                meetingSummary.getTranscriptSegments() != null
+                        && !meetingSummary.getTranscriptSegments().isEmpty();
+
+        String fallbackTranscript =
+                hasSegments
+                        ? null
+                        : transcriptFormatter.format(
+                        meetingSummary.getRawTranscript()
+                );
 
         return SummaryResponseDto.Detail.completed(
                 meetingSummary,
                 actionItems,
-                formattedTranscript
+                fallbackTranscript
         );
     }
 

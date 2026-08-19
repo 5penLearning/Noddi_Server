@@ -63,7 +63,7 @@ public class OpenAiClient {
         this.audioDownloadReadTimeoutMs = audioDownloadReadTimeoutMs;
     }
 
-    public String transcribeAudio(String audioUrl) {
+    public OpenAiResponseDto.Transcription transcribeAudio(String audioUrl) {
         log.info("[OpenAI Whisper] STT 변환 시작");
 
         Path temporaryAudioFile = null;
@@ -134,14 +134,16 @@ public class OpenAiClient {
         }
     }
 
-    private String requestWhisperTranscription(Path audioFile) {
+    private OpenAiResponseDto.Transcription requestWhisperTranscription(Path audioFile) {
         // FileSystemResource는 디스크 파일을 multipart의 file 항목으로 전달할 수 있게 포장
         FileSystemResource audioResource = new FileSystemResource(audioFile);
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
         body.add("file", audioResource);
-        body.add("model", "whisper-1");
+        body.add("model", "gpt-4o-transcribe-diarize");
         body.add("language", "ko");
+        body.add("response_format", "diarized_json");
+        body.add("chunking_strategy", "auto");
 
         OpenAiResponseDto.Transcription response = openAiRestClient.post()
                 .uri("/audio/transcriptions")
@@ -150,11 +152,13 @@ public class OpenAiClient {
                 .retrieve()
                 .body(OpenAiResponseDto.Transcription.class);
 
-        if (response != null && StringUtils.hasText(response.text())) {
-            return response.text();
+        if (response == null || !StringUtils.hasText(response.text())) {
+            throw new GeneralException(
+                    SummaryErrorCode.STT_PROCESSING_FAILED
+            );
         }
 
-        throw new GeneralException(SummaryErrorCode.STT_PROCESSING_FAILED);
+        return response;
     }
 
     private void deleteTemporaryFile(Path temporaryAudioFile) {
