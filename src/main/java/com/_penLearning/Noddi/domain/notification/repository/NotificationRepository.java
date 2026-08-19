@@ -7,9 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -186,5 +188,48 @@ public interface NotificationRepository
 
             @Param("types")
             Set<NotificationType> types
+    );
+
+    // 90일 경과 알림 일괄 삭제
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+    DELETE FROM Notification n
+    WHERE n.occurredAt < :threshold
+""")
+    int bulkDeleteOldNotifications(@Param("threshold") LocalDateTime threshold);
+
+    // 알림 개수가 maxCount를 초과하는 유저 ID 조회
+    @Query("""
+    SELECT n.user.userId
+    FROM Notification n
+    GROUP BY n.user.userId
+    HAVING COUNT(n) > :maxCount
+""")
+    List<Long> findUserIdsWithExcessNotifications(@Param("maxCount") long maxCount);
+
+    // 특정 유저의 알림을 최신순으로 정렬했을 때 n번째(기준점) 알림 조회 (PageRequest.of(maxCount - 1, 1) 사용)
+    @Query("""
+    SELECT n
+    FROM Notification n
+    WHERE n.user.userId = :userId
+    ORDER BY n.occurredAt DESC, n.notificationId DESC
+""")
+    List<Notification> findCutoffNotification(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+    // 기준점 이전의 초과 알림 일괄 삭제 (occurredAt 및 tie-breaker notificationId 기준)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+    DELETE FROM Notification n
+    WHERE n.user.userId = :userId
+      AND (n.occurredAt < :cutoffOccurredAt
+           OR (n.occurredAt = :cutoffOccurredAt AND n.notificationId < :cutoffNotificationId))
+""")
+    int bulkDeleteExcessNotifications(
+            @Param("userId") Long userId,
+            @Param("cutoffOccurredAt") LocalDateTime cutoffOccurredAt,
+            @Param("cutoffNotificationId") Long cutoffNotificationId
     );
 }
