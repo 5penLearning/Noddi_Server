@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.meeting.repository;
 
 import com._penLearning.Noddi.domain.meeting.code.AiStatus;
+import com._penLearning.Noddi.domain.meeting.code.MeetingStatus;
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
 import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.team.entity.Team;
@@ -46,6 +47,18 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     int failStuckAiProcessing(
             @Param("threshold") LocalDateTime threshold,
             @Param("processingStatus") AiStatus processingStatus,
+            @Param("failedStatus") AiStatus failedStatus
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Meeting m SET m.aiStatus = :failedStatus " +
+            "WHERE m.status = :endedStatus " +
+            "AND m.aiStatus = :pendingStatus " +
+            "AND m.endedAt < :threshold")
+    int failStuckPendingAiMeetings(
+            @Param("threshold") LocalDateTime threshold,
+            @Param("endedStatus") MeetingStatus endedStatus,
+            @Param("pendingStatus") AiStatus pendingStatus,
             @Param("failedStatus") AiStatus failedStatus
     );
 }

@@ -63,6 +63,8 @@ scheduler:
     zone: "${MEETING_AI_RECOVERY_ZONE:Asia/Seoul}"
     # 정상 처리 시간을 충분히 고려해 30분을 초과한 작업만 FAILED로 복구한다.
     processing-timeout-minutes: ${MEETING_AI_PROCESSING_TIMEOUT_MINUTES:30}
+    # PENDING 타임아웃 추가 (기본 10분)
+    pending-timeout-minutes: ${MEETING_AI_PENDING_TIMEOUT_MINUTES:10}
   qa-ai:
     recovery-cron: "${QA_AI_RECOVERY_CRON:0 */5 * * * *}"
     zone: "${QA_AI_RECOVERY_ZONE:Asia/Seoul}"
