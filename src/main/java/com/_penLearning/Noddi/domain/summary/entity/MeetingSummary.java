@@ -1,6 +1,7 @@
 package com._penLearning.Noddi.domain.summary.entity;
 
 import com._penLearning.Noddi.domain.meeting.entity.Meeting;
+import com._penLearning.Noddi.domain.summary.model.MeetingTranscriptSegment;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -46,8 +47,19 @@ public class MeetingSummary {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "JSON")
+    private List<MeetingTranscriptSegment> transcriptSegments;
+
+
     @Builder
-    public MeetingSummary(Meeting meeting, String summaryText, List<String> decisions, List<String> issues, String rawTranscript) {
+    public MeetingSummary(
+            Meeting meeting,
+            String summaryText,
+            List<String> decisions,
+            List<String> issues,
+            String rawTranscript,
+            List<MeetingTranscriptSegment> transcriptSegments) {
         this.meeting = meeting;
         this.summaryText = summaryText;
         // OpenAI가 null을 반환하더라도 DB에는 빈 JSON 배열을 저장한다.
@@ -60,6 +72,9 @@ public class MeetingSummary {
                 : new ArrayList<>();
         this.createdAt = LocalDateTime.now();
         this.rawTranscript = rawTranscript;
+        this.transcriptSegments = transcriptSegments != null
+                ? new ArrayList<>(transcriptSegments)
+                : new ArrayList<>();
     }
 
     public void update(

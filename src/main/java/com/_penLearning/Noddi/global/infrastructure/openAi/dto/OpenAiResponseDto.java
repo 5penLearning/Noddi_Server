@@ -9,8 +9,21 @@ public class OpenAiResponseDto {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Transcription(
-            String text
+            String text,
+            Double duration,
+            List<TranscriptionSegment> segments
     ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TranscriptionSegment(
+            String id,
+            Double start,
+            Double end,
+            String speaker,
+            String text
+    ){
+
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
