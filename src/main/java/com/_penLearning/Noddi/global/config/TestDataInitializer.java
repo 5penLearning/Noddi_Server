@@ -18,6 +18,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ import java.util.List;
 @Slf4j
 @Component
 @Profile({"local", "dev", "default"})
+@ConditionalOnProperty(prefix = "demo-data", name = "enabled", havingValue = "false", matchIfMissing = true)
 @RequiredArgsConstructor
 public class TestDataInitializer implements CommandLineRunner {
 
