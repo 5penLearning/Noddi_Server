@@ -34,6 +34,13 @@ public class KnowledgeIndexService {
 
         if (source.content() == null || source.content().isBlank()) {
             removePreviousSource(source, previousState);
+            indexStateService.recordSuccess(
+                    source.sourceId(),
+                    source.teamId(),
+                    source.sourceType(),
+                    sha256(""),
+                    0
+            );
             return KnowledgeIndexResult.skippedResult();
         }
 
@@ -43,6 +50,24 @@ public class KnowledgeIndexService {
         }
 
         List<Document> documents = documentFactory.create(source);
+
+        if (documents.isEmpty()) {
+            removePreviousSource(source, previousState);
+            indexStateService.recordSuccess(
+                    source.sourceId(),
+                    source.teamId(),
+                    source.sourceType(),
+                    contentHash,
+                    0
+            );
+            log.info(
+                    "[KnowledgeIndex] 내용이 너무 짧아 색인 대상 청크가 없습니다: sourceId={}, sourceType={}",
+                    source.sourceId(),
+                    source.sourceType()
+            );
+            return KnowledgeIndexResult.skippedResult();
+        }
+
         vectorStore.add(documents);
 
         previousState.ifPresent(state -> deleteStaleDocuments(

@@ -28,8 +28,7 @@ public class MeetingSummary {
     @JoinColumn(name = "meetingId", nullable = false, unique = true)
     private Meeting meeting;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String summaryText;
 
     @Column(nullable = false, columnDefinition = "LONGTEXT")
@@ -48,7 +47,7 @@ public class MeetingSummary {
     private LocalDateTime createdAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSON")
+    @Column(columnDefinition = "JSON", nullable = false)
     private List<MeetingTranscriptSegment> transcriptSegments;
 
 
