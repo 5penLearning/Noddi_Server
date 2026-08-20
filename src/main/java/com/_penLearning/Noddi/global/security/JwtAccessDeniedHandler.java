@@ -23,6 +23,10 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
 
+        if (response.isCommitted()) {
+            return;
+        }
+
         // 403 Forbidden 에러 코드 지정 (AuthErrorCode에 FORBIDDEN 또는 ACCESS_DENIED 항목 정의 필요)
         AuthErrorCode errorCode = AuthErrorCode.FORBIDDEN;
 

@@ -1,5 +1,6 @@
 package com._penLearning.Noddi.global.security;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +12,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -47,6 +47,10 @@ public class SecurityConfig {
                 )
                 // 3. URL 차단 및 개방 규칙
                 .authorizeHttpRequests(auth -> auth
+                                // 비동기 디스패치 및 에러 포워딩 허용
+                                .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
+                                // 에러 페이지 허용
+                                .requestMatchers("/error").permitAll()
                                 // Swagger 문서 접속 주소 허용
                                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                                 // 회원가입, 로그인 API 허용

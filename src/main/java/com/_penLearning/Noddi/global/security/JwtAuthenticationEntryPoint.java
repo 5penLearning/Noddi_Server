@@ -22,6 +22,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
 
+        if (response.isCommitted()) {
+            return;
+        }
+
         // 필터에서 저장했던 에러 코드 조회 (없으면 기본 토큰 에러)
         AuthErrorCode errorCode = (AuthErrorCode) request.getAttribute("exception");
 
