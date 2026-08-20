@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -22,7 +24,6 @@ public class Organization extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     private String emailDomain;
-
     @Builder
     public Organization(String name, String emailDomain) {
         this.name = name;

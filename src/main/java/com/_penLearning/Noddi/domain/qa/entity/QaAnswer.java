@@ -1,18 +1,33 @@
 package com._penLearning.Noddi.domain.qa.entity;
 
-import jakarta.persistence.*;
+import com._penLearning.Noddi.domain.user.entity.User;
+import com._penLearning.Noddi.global.common.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
+/**
+ * 질문에 생성된 AI 답변이다.
+ * 담당자가 수정하면 현재 답변을 변경하고 마지막 수정자를 기록한다.
+ * 버전별 내용은 QaAnswerRevision에 별도로 누적한다.
+ */
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "QaAnswer")
-public class QaAnswer {
+public class QaAnswer extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,24 +37,48 @@ public class QaAnswer {
     @JoinColumn(name = "questionId", nullable = false, unique = true)
     private QaQuestion question;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    // 최신 수정본 ID (null이면 수정 없음)
-    private Long latestRevisionId;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private AnswerType answerType;
 
-    @Builder
-    public QaAnswer(QaQuestion question, String content) {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "revisedBy")
+    private User revisedBy;
+
+    private QaAnswer(QaQuestion question, String content) {
         this.question = question;
         this.content = content;
-        this.createdAt = LocalDateTime.now();
+        this.answerType = AnswerType.AI;
     }
 
-    public void updateLatestRevision(Long revisionId) {
-        this.latestRevisionId = revisionId;
+    public static QaAnswer createAiAnswer(QaQuestion question, String content) {
+        return new QaAnswer(question, content);
+    }
+
+    public static QaAnswer createSystemNotice(QaQuestion question, String content) {
+        QaAnswer answer = new QaAnswer(question, content);
+        answer.answerType = AnswerType.SYSTEM;
+        return answer;
+    }
+
+    // 현재 답변을 수정하고 마지막 수정자를 기록한다
+    public void revise(String content, User reviser) {
+        this.content = content;
+        this.revisedBy = reviser;
+    }
+
+    public void provideByTeam(String content) {
+        this.content = content;
+        // 시스템 안내문을 실제 답변으로 교체하는 최초 작성이므로 '수정됨'으로 표시하지 않는다.
+        this.revisedBy = null;
+        this.answerType = AnswerType.TEAM;
+    }
+
+    // 수정 여부 판단
+    public boolean isRevised() {
+        return revisedBy != null;
     }
 }

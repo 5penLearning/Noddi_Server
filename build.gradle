@@ -18,6 +18,14 @@ repositories {
 }
 
 dependencies {
+
+	implementation platform('org.springframework.ai:spring-ai-bom:2.0.0')
+	// AWS SDK 모듈들의 버전을 동일하게 관리한다.
+	implementation platform('software.amazon.awssdk:bom:2.47.6')
+	// S3 저장·조회·삭제에 필요한 AWS SDK v2 모듈
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-vector-store-pinecone'
 	implementation 'org.springframework.boot:spring-boot-h2console'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	runtimeOnly 'com.mysql:mysql-connector-j'
@@ -26,6 +34,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 	testImplementation 'org.springframework.security:spring-security-test'
@@ -40,5 +50,18 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'external'
+	}
+}
+
+tasks.register('externalTest', Test) {
+	description = 'Runs tests that call real OpenAI and Pinecone APIs.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'external'
+	}
+	shouldRunAfter tasks.named('test')
 }

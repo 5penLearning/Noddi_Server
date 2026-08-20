@@ -37,3 +37,6 @@ out/
 .vscode/
 
 .Ds_Store
+
+# EC2/local profile image storage
+/uploads/

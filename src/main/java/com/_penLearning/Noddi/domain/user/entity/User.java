@@ -31,19 +31,64 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private Boolean isActive = true;
+    /** 사용자 프로필에 표시할 자유 입력 부서명이다. 권한 판단에는 사용하지 않는다. */
+    @Column(length = 20)
+    private String department;
+
+    /** 사용자 프로필에 표시할 자유 입력 직함이다. 권한 판단에는 사용하지 않는다. */
+    @Column(length = 20)
+    private String position;
+
+    /** EC2 로컬 저장소의 프로필 이미지 파일 키다. */
+    @Column(length = 100)
+    private String profileImageKey;
 
     @Builder
-    public User(Organization organization, String email, String name, String password) {
+    public User(
+            Organization organization,
+            String email,
+            String name,
+            String password,
+            String department,
+            String position
+    ) {
         this.organization = organization;
         this.email = email;
         this.name = name;
         this.password = password;
-        this.isActive = true;
+        this.department = normalizeProfileValue(department);
+        this.position = normalizeProfileValue(position);
     }
 
-    public void deactivate() {
-        this.isActive = false;
+    public void updateProfile(String name, String department, String position) {
+        this.name = name;
+        if (department != null) {
+            this.department = normalizeProfileValue(department);
+        }
+        if (position != null) {
+            this.position = normalizeProfileValue(position);
+        }
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    /** 새 프로필 이미지 키로 교체하고 이전 키를 반환한다. */
+    public String updateProfileImage(String newProfileImageKey) {
+        String previousKey = this.profileImageKey;
+        this.profileImageKey = newProfileImageKey;
+        return previousKey;
+    }
+
+    /** 프로필 이미지 연결을 해제하고 이전 키를 반환한다. */
+    public String removeProfileImage() {
+        String previousKey = this.profileImageKey;
+        this.profileImageKey = null;
+        return previousKey;
+    }
+
+    private static String normalizeProfileValue(String value) {
+        return value == null ? null : value.strip();
     }
 }

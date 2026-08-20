@@ -1,0 +1,198 @@
+package com._penLearning.Noddi.domain.meeting.code;
+
+import com._penLearning.Noddi.domain.auth.entity.AuthMember;
+import com._penLearning.Noddi.domain.meeting.dto.MeetingRequestDto;
+import com._penLearning.Noddi.domain.meeting.dto.MeetingResponseDto;
+import com._penLearning.Noddi.global.apiPayload.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
+import java.util.List;
+
+@Tag(name = "Meeting API", description = "회의 예약/시작/종료/AI 요약 관련 API")
+public interface MeetingApi {
+
+    @Operation(summary = "회의 단건 조회", description = "회의의 현재 상태, 접속 URL, AI 요약 상태 등 상세 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<MeetingResponseDto.Info> getMeeting(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(summary = "회의 녹음본 다운로드 URL 조회", description = "종료된 회의의 1시간 유효한 최신 S3 녹음본 다운로드 URL을 동적으로 생성하여 반환합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "녹음본 URL 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "녹음본이 아직 준비되지 않음 (웹훅 수신 전이거나 녹음본 없음)",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<MeetingResponseDto.RecordingUrlDto> getRecordingUrl(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(summary = "팀별 회의 목록 조회", description = "특정 팀의 모든 회의(예약/진행/종료) 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "팀을 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<List<MeetingResponseDto.Info>> getMeetingsByTeam(
+            Long teamId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+    @Operation(summary = "회의 참가자 목록 조회", description = "해당 회의에 참가한 유저 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<List<MeetingResponseDto.ParticipantInfo>> getParticipants(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(summary = "회의 예약 생성", description = "팀의 회의를 예약 상태(SCHEDULED)로 등록합니다. Daily.co 방은 아직 생성되지 않습니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "회의 예약 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "유효성 검사 실패",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "팀 또는 유저를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<MeetingResponseDto.Info> createMeeting(
+            MeetingRequestDto.Create request,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(summary = "회의 시작", description = "Daily.co 방을 생성하고 회의를 시작합니다(IN_PROGRESS). 이미 진행 중이면 기존 방 URL을 반환합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "회의 시작 성공 (roomUrl 포함)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "예약 상태가 아닌 회의를 시작 시도",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "Daily.co WebRTC 방 생성 실패",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<MeetingResponseDto.Start> startMeeting(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(summary = "회의 종료", description = "회의를 종료(ENDED)하고 Daily.co 방을 삭제합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "회의 종료 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "진행 중이 아닌 회의를 종료 시도",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 팀의 팀원이 아님",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    ApiResponse<Void> endMeeting(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+
+    @Operation(
+            summary = "AI 회의록 재시도",
+            description = "AI 회의록 생성에 실패한 회의를 다시 처리합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "AI 회의록 재시도 접수 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "FAILED 상태가 아니거나 녹음본이 준비되지 않음",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation = ApiResponse.class
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "해당 회의 팀원이 아님",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation = ApiResponse.class
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "회의를 찾을 수 없음",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation = ApiResponse.class
+                            )
+                    )
+            )
+    })
+    ApiResponse<Void> retrySummary(
+            Long meetingId,
+            @AuthenticationPrincipal AuthMember authMember
+    );
+}
