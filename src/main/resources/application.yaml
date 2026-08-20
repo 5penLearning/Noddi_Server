@@ -118,3 +118,9 @@ profile-image:
     bucket: ${PROFILE_IMAGE_S3_BUCKET:}
     region: ${AWS_REGION:ap-northeast-2}
     prefix: ${PROFILE_IMAGE_S3_PREFIX:profile-images}
+
+# 시연 데이터는 명시적으로 활성화한 한 번의 배포에서만 생성한다.
+# 관계형 데이터 생성 후 회의 전사와 공유페이지를 실제 Pinecone 색인 흐름으로 전달한다.
+demo-data:
+  enabled: ${DEMO_DATA_ENABLED:false}
+  password: "${DEMO_DATA_PASSWORD:Demo1234!}"
