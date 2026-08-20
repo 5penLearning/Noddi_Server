@@ -85,6 +85,43 @@ class KnowledgeIndexServiceTest {
         verify(vectorStore).delete(staleIds);
     }
 
+    @Test
+    void skipsVectorStoreWhenDocumentsAreEmptyAndRecordsZeroChunks() throws Exception {
+        KnowledgeSourceContent source = source("short");
+        when(indexStateService.get(20L, SourceType.TEAM_TEXT)).thenReturn(Optional.empty());
+        when(documentFactory.create(source)).thenReturn(List.of());
+
+        KnowledgeIndexResult result = indexService.synchronize(source);
+
+        assertThat(result.skipped()).isTrue();
+        verify(vectorStore, never()).add(org.mockito.ArgumentMatchers.anyList());
+        verify(indexStateService).recordSuccess(
+                eq(20L),
+                eq(10L),
+                eq(SourceType.TEAM_TEXT),
+                eq(sha256("short")),
+                eq(0)
+        );
+    }
+
+    @Test
+    void recordsZeroChunksWhenSourceContentIsBlank() throws Exception {
+        KnowledgeSourceContent source = source("   ");
+        when(indexStateService.get(20L, SourceType.TEAM_TEXT)).thenReturn(Optional.empty());
+
+        KnowledgeIndexResult result = indexService.synchronize(source);
+
+        assertThat(result.skipped()).isTrue();
+        verify(vectorStore, never()).add(org.mockito.ArgumentMatchers.anyList());
+        verify(indexStateService).recordSuccess(
+                eq(20L),
+                eq(10L),
+                eq(SourceType.TEAM_TEXT),
+                eq(sha256("")),
+                eq(0)
+        );
+    }
+
     private KnowledgeSourceContent source(String content) {
         return new KnowledgeSourceContent(20L, 10L, SourceType.TEAM_TEXT, "team page", content);
     }
