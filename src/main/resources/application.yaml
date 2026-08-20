@@ -72,6 +72,11 @@ scheduler:
   qa-knowledge:
     recovery-cron: "${QA_KNOWLEDGE_RECOVERY_CRON:0 */5 * * * *}"
     zone: "${QA_KNOWLEDGE_RECOVERY_ZONE:Asia/Seoul}"
+  notification:
+    cron: "${NOTIFICATION_CLEANUP_CRON:0 0 3 * * *}"
+    zone: "${NOTIFICATION_CLEANUP_ZONE:Asia/Seoul}"
+    retention-days: ${NOTIFICATION_RETENTION_DAYS:90}
+    max-count-per-user: ${NOTIFICATION_MAX_COUNT_PER_USER:500}
 
 jwt:
   secret: ${JWT_SECRET} #환경변수 설정 필요
