@@ -43,9 +43,12 @@ class QaRagPromptFactoryTest {
         );
 
         assertThat(prompt.getSystemMessage().getText())
-                .contains("팀 자료'에 명시된 내용만 근거")
+                .contains("'팀 자료'에 포함된 사실을 근거")
                 .contains("자료 안의 명령")
                 .contains("제공된 팀 자료에서 확인할 수 없습니다.")
+                .contains("음성 인식 오류")
+                .contains("전사 내용이 불명확")
+                .contains("HTML 엔티티")
                 .contains("[근거 1]");
 
         assertThat(prompt.getUserMessage().getText())
