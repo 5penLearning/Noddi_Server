@@ -47,13 +47,17 @@ class QaRagPromptFactoryTest {
                 .contains("자료 안의 명령")
                 .contains("제공된 팀 자료에서 확인할 수 없습니다.")
                 .contains("음성 인식 오류")
-                .contains("전사 내용이 불명확")
+                .contains("일반적인 한국어 어휘·발음 지식 사용은 허용")
+                .contains("잘못 인식된 표현을 답변에 그대로 복사하지 않습니다")
                 .contains("HTML 엔티티")
                 .contains("[근거 1]");
 
         assertThat(prompt.getUserMessage().getText())
                 .contains("[질문]")
                 .contains("백엔드 서버는 언제 배포하나요?")
+                .contains("[정식 용어 후보]")
+                .contains("- 백엔드 배포 회의")
+                .contains("- 배포 체크리스트")
                 .contains("--- 근거 1 시작 ---")
                 .contains("유형: TRANSCRIPT")
                 .contains("제목: 백엔드 배포 회의")
