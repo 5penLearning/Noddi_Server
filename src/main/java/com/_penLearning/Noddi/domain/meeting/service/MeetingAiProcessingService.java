@@ -11,6 +11,7 @@ import com._penLearning.Noddi.domain.project.entity.Project;
 import com._penLearning.Noddi.domain.summary.code.SummaryErrorCode;
 import com._penLearning.Noddi.domain.actionItem.entity.ActionItem;
 import com._penLearning.Noddi.domain.summary.entity.MeetingSummary;
+import com._penLearning.Noddi.domain.summary.formatter.TranscriptSanitizer;
 import com._penLearning.Noddi.domain.actionItem.repository.ActionItemRepository;
 import com._penLearning.Noddi.domain.summary.model.MeetingTranscriptSegment;
 import com._penLearning.Noddi.domain.summary.repository.MeetingSummaryRepository;
@@ -53,6 +54,7 @@ public class MeetingAiProcessingService {
     private final MeetingSummaryRepository meetingSummaryRepository;
     private final ActionItemRepository actionItemRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final TranscriptSanitizer transcriptSanitizer;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -82,7 +84,9 @@ public class MeetingAiProcessingService {
 
             OpenAiResponseDto.Transcription transcription =
                     openAiClient.transcribeAudio(recordingAccessLink);
-            String rawTranscript = transcription.text();
+            // HTML 엔티티와 보이지 않는 문자 등 전사의 의미와 무관한 노이즈를
+            // 요약·저장·RAG 색인 전에 한 번만 정리한다.
+            String rawTranscript = transcriptSanitizer.sanitize(transcription.text());
 
             List<MeetingTranscriptSegment> transcriptSegments =
                     convertSegments(transcription.segments());
@@ -316,7 +320,7 @@ public class MeetingAiProcessingService {
                             segment.speaker(),
                             toMilliseconds(segment.start()),
                             toMilliseconds(segment.end()),
-                            segment.text()
+                            transcriptSanitizer.sanitize(segment.text())
                     );
                 })
                 .toList();
