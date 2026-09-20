@@ -98,12 +98,27 @@ public class MeetingAiProcessingService {
                     LocalDate.now(),
                     context.teamMembers()
             );
-            int actionItemCount = aiResult.actionItems() == null ? 0 : aiResult.actionItems().size();
+            int decisionCount = aiResult.decisions() == null
+                    ? 0
+                    : aiResult.decisions().size();
+
+            int issueCount = aiResult.issues() == null
+                    ? 0
+                    : aiResult.issues().size();
+
+            int actionItemCount = aiResult.actionItems() == null
+                    ? 0
+                    : aiResult.actionItems().size();
+
             log.info(
-                    "[MeetingAiProcessingService] 회의 구조화 요약 완료: meetingId={}, actionItemCount={}",
+                    "[MeetingAiProcessingService] 회의 구조화 요약 완료: " +
+                            "meetingId={}, decisionCount={}, issueCount={}, actionItemCount={}",
                     meetingId,
+                    decisionCount,
+                    issueCount,
                     actionItemCount
             );
+
             saveResultAtomically(meetingId, rawTranscript, transcriptSegments, aiResult);
             log.info(
                     "[MeetingAiProcessingService] AI 회의록 DB 저장 완료: meetingId={}",
